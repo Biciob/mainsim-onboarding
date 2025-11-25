@@ -1,0 +1,5 @@
+{
+  "name": "Mainsim Onboarding Wizard",
+  "description": "Applicazione per guidare i fornitori nella configurazione iniziale delle istanze CMMS Mainsim, con integrazione AI per riepilogo tecnico ed export Excel.",
+  "requestFramePermissions": []
+}
