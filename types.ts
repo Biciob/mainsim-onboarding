@@ -33,10 +33,20 @@ export enum QrCodeGoal {
   DOCS = "Accesso a documentazione tecnica"
 }
 
+// Step 3 Enums
+export enum WizardMode {
+  STANDARD = "Standard (max 2 flussi)",
+  CUSTOM = "Custom (max 5 flussi)",
+  ADVANCED = "Advanced (max 10 flussi, regole dinamiche)",
+  MATRIX = "Matrix (routing automatico su condizioni)"
+}
+
 export interface OnboardingData {
   // Step 1
   instanceName: string;
   brandColor: string;
+  brandLogo: string | null; // Base64 or URL
+  brandLogoName: string;
   authMode: AuthMode;
   restrictionType: RestrictionType;
   restrictionDetails: string;
@@ -69,6 +79,18 @@ export interface OnboardingData {
   assetsAlreadyLabeled: string; // "Si" | "No"
   taggingStandard: string; // "QR-code" | "Barcode" | other
   labelInfo: string[]; // Multi-select
+
+  // Step 3: Wizard - Smart Guide
+  wizardProcesses: string[];
+  wizardDataPoints: string[];
+  wizardCustomFields: string;
+  wizardHasApproval: string; // "Si" | "No"
+  wizardApprovalDetails: string;
+  wizardAutoAssignment: string; // "Si" | "No"
+  wizardUsers: string[]; // Utenti, Fornitori, Referenti
+  wizardDocsAvailable: string; // "Si" | "No"
+  wizardDocsFile: string; // Filename
+  wizardMode: WizardMode;
 }
 
 export interface ProcessingState {

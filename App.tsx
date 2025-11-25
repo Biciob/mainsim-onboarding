@@ -13,7 +13,10 @@ import {
   QrCode,
   ArrowRight,
   ArrowLeft,
-  PlayCircle
+  PlayCircle,
+  Zap,
+  Layout,
+  Upload
 } from 'lucide-react';
 import { InputGroup } from './components/InputGroup';
 import { 
@@ -23,14 +26,19 @@ import {
   ProcessingState,
   AssetDataFormat,
   MainsimRole,
-  QrCodeGoal
+  QrCodeGoal,
+  WizardMode
 } from './types';
 import { 
   DEFAULT_COLOR, 
   DOMAIN_SUFFIX, 
   ASSET_TUTORIAL_URL,
   ASSET_FIELDS_CONFIG,
-  LABEL_INFO_OPTIONS
+  LABEL_INFO_OPTIONS,
+  WIZARD_PROCESS_OPTIONS,
+  WIZARD_DATA_OPTIONS,
+  WIZARD_USER_OPTIONS,
+  WIZARD_MODE_DESCRIPTIONS
 } from './constants';
 import { generateImplementationBrief } from './services/geminiService';
 import { generateAndDownloadExcel } from './services/excelService';
@@ -41,6 +49,8 @@ const App: React.FC = () => {
     // Step 1
     instanceName: '',
     brandColor: DEFAULT_COLOR,
+    brandLogo: null,
+    brandLogoName: '',
     authMode: AuthMode.EMAIL_PASSWORD,
     restrictionType: RestrictionType.NO,
     restrictionDetails: '',
@@ -68,7 +78,19 @@ const App: React.FC = () => {
     qrCodeGoal: QrCodeGoal.TRACKING,
     assetsAlreadyLabeled: 'No',
     taggingStandard: 'QR-code',
-    labelInfo: []
+    labelInfo: [],
+
+    // Step 3
+    wizardProcesses: [],
+    wizardDataPoints: [],
+    wizardCustomFields: '',
+    wizardHasApproval: 'No',
+    wizardApprovalDetails: '',
+    wizardAutoAssignment: 'No',
+    wizardUsers: [],
+    wizardDocsAvailable: 'No',
+    wizardDocsFile: '',
+    wizardMode: WizardMode.STANDARD
   });
 
   const [processing, setProcessing] = useState<ProcessingState>({ status: 'idle' });
@@ -106,6 +128,48 @@ const App: React.FC = () => {
     });
   };
 
+  const toggleWizardProcess = (process: string) => {
+    setFormData(prev => {
+      const exists = prev.wizardProcesses.includes(process);
+      return { ...prev, wizardProcesses: exists ? prev.wizardProcesses.filter(p => p !== process) : [...prev.wizardProcesses, process] };
+    });
+  };
+
+  const toggleWizardData = (dataPoint: string) => {
+    setFormData(prev => {
+      const exists = prev.wizardDataPoints.includes(dataPoint);
+      return { ...prev, wizardDataPoints: exists ? prev.wizardDataPoints.filter(d => d !== dataPoint) : [...prev.wizardDataPoints, dataPoint] };
+    });
+  };
+
+  const toggleWizardUser = (user: string) => {
+    setFormData(prev => {
+      const exists = prev.wizardUsers.includes(user);
+      return { ...prev, wizardUsers: exists ? prev.wizardUsers.filter(u => u !== user) : [...prev.wizardUsers, user] };
+    });
+  };
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData(prev => ({ 
+          ...prev, 
+          brandLogo: reader.result as string,
+          brandLogoName: file.name
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleDocUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setFormData(prev => ({ ...prev, wizardDocsAvailable: 'Si', wizardDocsFile: e.target.files![0].name }));
+    }
+  };
+
   // --- Validation ---
 
   const getStep1Errors = () => {
@@ -131,46 +195,50 @@ const App: React.FC = () => {
     return newErrors;
   };
 
+  const getStep3Errors = () => {
+    const newErrors: Partial<Record<keyof OnboardingData, string>> = {};
+    if (formData.wizardProcesses.length === 0) newErrors.wizardProcesses = "Seleziona almeno un processo.";
+    return newErrors;
+  };
+
   // --- Navigation ---
 
   const handleStepClick = (targetStep: number) => {
-    // Allows free navigation without validation
     setStep(targetStep);
-    setErrors({}); // Clear errors to give a clean view
+    setErrors({});
     window.scrollTo(0, 0);
   };
 
   const handleNext = () => {
-    // Standard "Next" button retains validation for UX guidance
-    const step1Errors = getStep1Errors();
-    if (Object.keys(step1Errors).length > 0) {
-      setErrors(step1Errors);
+    let stepErrors = {};
+    if (step === 1) stepErrors = getStep1Errors();
+    if (step === 2) stepErrors = getStep2Errors();
+
+    if (Object.keys(stepErrors).length > 0) {
+      setErrors(stepErrors);
       return;
     }
-    setStep(2);
+    setStep(prev => prev + 1);
     setErrors({});
     window.scrollTo(0, 0);
   };
 
   const handleBack = () => {
-    setStep(1);
+    setStep(prev => prev - 1);
     window.scrollTo(0, 0);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate ALL steps before submission
     const step1Errors = getStep1Errors();
     const step2Errors = getStep2Errors();
-    const allErrors = { ...step1Errors, ...step2Errors };
+    const step3Errors = getStep3Errors();
+    const allErrors = { ...step1Errors, ...step2Errors, ...step3Errors };
 
     if (Object.keys(allErrors).length > 0) {
       setErrors(allErrors);
-      alert("Attenzione: Ci sono campi obbligatori incompleti in uno o più passaggi. Verifica i dati inseriti.");
-      
-      // If we are on step 2 but errors are only in step 1, we might want to alert the user specifically,
-      // but showing the alert above is usually sufficient.
+      alert("Attenzione: Ci sono campi obbligatori incompleti. Verifica i dati inseriti.");
       return;
     }
 
@@ -211,22 +279,42 @@ const App: React.FC = () => {
           <Palette className="text-purple-600" size={24} />
           <h2 className="text-xl font-bold text-slate-800">Branding & Design</h2>
         </div>
-        <InputGroup label="Colore Brand" description="Codice HEX per login e sidebar." error={errors.brandColor}>
-          <div className="flex items-center gap-4">
-            <div className="relative flex-1">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">#</span>
-              <input
-                type="text"
-                maxLength={7}
-                value={formData.brandColor.replace('#', '')}
-                onChange={(e) => setFormData({...formData, brandColor: `#${e.target.value.replace('#', '')}`})}
-                className="w-full p-3 pl-8 border rounded-lg font-mono focus:ring-2 focus:ring-purple-500 outline-none border-slate-300"
-              />
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <InputGroup label="Colore Brand" description="Codice HEX per login e sidebar." error={errors.brandColor}>
+            <div className="flex items-center gap-4">
+              <div className="relative flex-1">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">#</span>
+                <input
+                  type="text"
+                  maxLength={7}
+                  value={formData.brandColor.replace('#', '')}
+                  onChange={(e) => setFormData({...formData, brandColor: `#${e.target.value.replace('#', '')}`})}
+                  className="w-full p-3 pl-8 border rounded-lg font-mono focus:ring-2 focus:ring-purple-500 outline-none border-slate-300"
+                />
+              </div>
+              <div className="w-12 h-12 rounded-lg border shadow-sm" style={{ backgroundColor: formData.brandColor }} />
+              <input type="color" value={formData.brandColor} onChange={(e) => setFormData({...formData, brandColor: e.target.value})} className="invisible w-0" />
             </div>
-            <div className="w-12 h-12 rounded-lg border shadow-sm" style={{ backgroundColor: formData.brandColor }} />
-            <input type="color" value={formData.brandColor} onChange={(e) => setFormData({...formData, brandColor: e.target.value})} className="invisible w-0" />
-          </div>
-        </InputGroup>
+          </InputGroup>
+
+          <InputGroup label="Logo Aziendale" description="Carica un file (PNG, JPG, SVG, WEBP)">
+            <div className="flex items-center gap-4">
+               <label className="flex-1 cursor-pointer">
+                  <div className="w-full p-3 border border-dashed border-slate-300 rounded-lg hover:bg-slate-50 flex items-center justify-center gap-2 text-slate-500">
+                    <Upload size={20} />
+                    <span className="text-sm truncate">{formData.brandLogoName || "Scegli file..."}</span>
+                  </div>
+                  <input type="file" accept="image/png, image/jpeg, image/webp, image/svg+xml" onChange={handleLogoUpload} className="hidden" />
+               </label>
+               {formData.brandLogo && (
+                 <div className="h-12 w-12 rounded border p-1 bg-white flex items-center justify-center overflow-hidden">
+                   <img src={formData.brandLogo} alt="Logo Preview" className="max-h-full max-w-full object-contain" />
+                 </div>
+               )}
+            </div>
+          </InputGroup>
+        </div>
       </section>
 
       {/* Section 3: Security */}
@@ -511,6 +599,153 @@ const App: React.FC = () => {
         </InputGroup>
       </section>
 
+      <div className="pt-6 flex justify-end">
+        <button type="button" onClick={handleNext} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transition-all">
+          Prosegui: Wizard <ArrowRight size={20} />
+        </button>
+      </div>
+    </div>
+  );
+
+  const renderStep3 = () => (
+    <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
+      
+      {/* Intro */}
+      <div className="bg-yellow-50 border border-yellow-100 rounded-xl p-4 flex flex-col md:flex-row gap-4 items-start">
+         <div className="bg-yellow-100 p-2 rounded-lg text-yellow-600">
+           <Zap size={24} />
+         </div>
+         <div>
+           <h3 className="font-bold text-yellow-900">Wizard - Smart Guide</h3>
+           <p className="text-sm text-yellow-800 mt-1">
+             Configura il modulo Wizard per semplificare e guidare gli utenti nell’apertura delle richieste.
+             Questa sarà l'interfaccia principale per l'interazione iniziale con il sistema.
+           </p>
+         </div>
+      </div>
+
+      <section className="space-y-6">
+        <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+          <Layout className="text-yellow-600" size={24} />
+          <h2 className="text-xl font-bold text-slate-800">Definizione Processi</h2>
+        </div>
+
+        <InputGroup label="Processi Principali" description="Cosa deve gestire il Wizard? (Multi-selezione)" error={errors.wizardProcesses}>
+           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+             {WIZARD_PROCESS_OPTIONS.map(opt => (
+               <label key={opt} className={`flex items-center p-3 border rounded-lg cursor-pointer transition-all ${formData.wizardProcesses.includes(opt) ? 'bg-yellow-50 border-yellow-500' : 'hover:bg-slate-50 border-slate-200'}`}>
+                 <input type="checkbox" className="hidden" checked={formData.wizardProcesses.includes(opt)} onChange={() => toggleWizardProcess(opt)} />
+                 <div className={`w-4 h-4 rounded border flex items-center justify-center mr-2 ${formData.wizardProcesses.includes(opt) ? 'bg-yellow-500 border-yellow-500' : 'border-slate-300'}`}>
+                   {formData.wizardProcesses.includes(opt) && <CheckCircle2 size={12} className="text-white" />}
+                 </div>
+                 <span className="text-sm font-medium text-slate-700">{opt}</span>
+               </label>
+             ))}
+           </div>
+        </InputGroup>
+
+        <InputGroup label="Dati da Raccogliere" description="Quali info chiedere per ogni processo?">
+           <div className="flex flex-wrap gap-2">
+             {WIZARD_DATA_OPTIONS.map(opt => (
+               <label key={opt} className={`px-4 py-2 rounded-full border cursor-pointer text-sm transition-colors ${formData.wizardDataPoints.includes(opt) ? 'bg-yellow-500 text-white border-yellow-500' : 'bg-white text-slate-600 border-slate-300 hover:border-yellow-300'}`}>
+                 <input type="checkbox" className="hidden" checked={formData.wizardDataPoints.includes(opt)} onChange={() => toggleWizardData(opt)} />
+                 {opt}
+               </label>
+             ))}
+           </div>
+        </InputGroup>
+
+        <InputGroup label="Campi Specifici/Custom">
+           <textarea 
+             placeholder="Elenca eventuali campi personalizzati necessari..." 
+             value={formData.wizardCustomFields} 
+             onChange={(e) => setFormData({...formData, wizardCustomFields: e.target.value})}
+             className="w-full p-3 border border-slate-300 rounded-lg text-sm h-20 focus:ring-2 focus:ring-yellow-500 outline-none" 
+           />
+        </InputGroup>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="p-4 border rounded-lg bg-slate-50">
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Flussi Approvativi Diversificati?</label>
+            <div className="flex gap-4 mb-3">
+               {['Si', 'No'].map(opt => (
+                 <label key={opt} className="flex items-center cursor-pointer">
+                   <input type="radio" name="wizardApproval" checked={formData.wizardHasApproval === opt} onChange={() => setFormData({...formData, wizardHasApproval: opt})} className="text-yellow-600" />
+                   <span className="ml-2 text-sm">{opt}</span>
+                 </label>
+               ))}
+            </div>
+            {formData.wizardHasApproval === 'Si' && (
+              <input 
+                type="text" 
+                placeholder="Quali flussi?" 
+                value={formData.wizardApprovalDetails} 
+                onChange={(e) => setFormData({...formData, wizardApprovalDetails: e.target.value})} 
+                className="w-full p-2 border border-slate-300 rounded text-sm" 
+              />
+            )}
+          </div>
+
+          <div className="p-4 border rounded-lg bg-slate-50">
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Assegnazione Automatica (Team/Fornitori)?</label>
+            <div className="flex gap-4">
+               {['Si', 'No'].map(opt => (
+                 <label key={opt} className="flex items-center cursor-pointer">
+                   <input type="radio" name="wizardAutoAssign" checked={formData.wizardAutoAssignment === opt} onChange={() => setFormData({...formData, wizardAutoAssignment: opt})} className="text-yellow-600" />
+                   <span className="ml-2 text-sm">{opt}</span>
+                 </label>
+               ))}
+            </div>
+          </div>
+        </div>
+
+        <InputGroup label="Chi compila il Wizard?" description="Seleziona chi avrà accesso all'interfaccia.">
+           <div className="flex flex-wrap gap-4">
+             {WIZARD_USER_OPTIONS.map(opt => (
+               <label key={opt} className="flex items-center cursor-pointer">
+                 <input type="checkbox" className="rounded border-slate-300 text-yellow-600 focus:ring-yellow-500" checked={formData.wizardUsers.includes(opt)} onChange={() => toggleWizardUser(opt)} />
+                 <span className="ml-2 text-sm text-slate-700">{opt}</span>
+               </label>
+             ))}
+           </div>
+        </InputGroup>
+        
+        <InputGroup label="Documentazione Disponibile" description="Hai già manuali o esempi di procedure?">
+           <div className="flex items-center gap-4">
+             <div className="flex gap-4">
+                 {['Si', 'No'].map(opt => (
+                   <label key={opt} className="flex items-center cursor-pointer">
+                     <input type="radio" name="wizardDocs" checked={formData.wizardDocsAvailable === opt} onChange={() => setFormData({...formData, wizardDocsAvailable: opt})} className="text-yellow-600" />
+                     <span className="ml-2 text-sm">{opt}</span>
+                   </label>
+                 ))}
+             </div>
+             {formData.wizardDocsAvailable === 'Si' && (
+               <input type="file" onChange={handleDocUpload} className="text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-yellow-50 file:text-yellow-700 hover:file:bg-yellow-100" />
+             )}
+           </div>
+        </InputGroup>
+      </section>
+
+      <section className="space-y-6 pt-6 border-t border-slate-200">
+        <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+          <Sparkles className="text-yellow-600" size={24} />
+          <h2 className="text-xl font-bold text-slate-800">Modalità Configurazione</h2>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+           {Object.values(WizardMode).map(mode => (
+             <label key={mode} className={`relative flex flex-col p-4 border-2 rounded-xl cursor-pointer transition-all hover:shadow-md ${formData.wizardMode === mode ? 'border-yellow-500 bg-yellow-50' : 'border-slate-200 hover:border-yellow-200'}`}>
+               <div className="flex items-center mb-2">
+                 <input type="radio" name="wizardMode" value={mode} checked={formData.wizardMode === mode} onChange={() => setFormData({...formData, wizardMode: mode})} className="text-yellow-600 focus:ring-yellow-500" />
+                 <span className="ml-2 font-bold text-slate-800">{mode.split('(')[0]}</span>
+               </div>
+               <p className="text-xs text-slate-500 pl-6">{WIZARD_MODE_DESCRIPTIONS[mode]}</p>
+             </label>
+           ))}
+        </div>
+      </section>
+
       {/* Navigation Actions */}
       <div className="pt-6 border-t border-slate-200 flex justify-between items-center">
         <button type="button" onClick={handleBack} className="flex items-center gap-2 text-slate-600 hover:text-slate-800 font-medium px-4 py-2">
@@ -556,7 +791,7 @@ const App: React.FC = () => {
           </div>
           <h2 className="text-3xl font-bold text-slate-800 mb-2">Onboarding Completato!</h2>
           <p className="text-slate-600 mb-6">
-            Configurazione Istanza e Asset acquisita.
+            Tutti i dati (Istanza, Asset, Wizard) sono stati acquisiti.
           </p>
 
           <div className="bg-slate-50 p-4 rounded-lg text-left mb-6 border border-slate-200 max-h-60 overflow-y-auto">
@@ -597,12 +832,13 @@ const App: React.FC = () => {
             Mainsim <span className="text-blue-600">Onboarding</span>
           </h1>
           <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-            Wizard di configurazione: Istanza & Asset
+            Wizard di configurazione: Istanza, Asset & Smart Guide
           </p>
         </div>
 
         {/* Step Indicator (Interactive) */}
         <div className="mb-8 flex justify-center items-center gap-4">
+           {/* Step 1 */}
            <button 
              type="button" 
              onClick={() => handleStepClick(1)}
@@ -611,29 +847,48 @@ const App: React.FC = () => {
              <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-colors ${step === 1 ? 'border-blue-600 bg-blue-50 text-blue-600 font-bold' : (step > 1 ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-300 text-slate-500')}`}>
                {step > 1 ? <CheckCircle2 size={16} /> : 1}
              </div>
-             <span className={`text-sm font-medium ${step === 1 ? 'text-blue-600' : 'text-slate-500 group-hover:text-blue-600'}`}>Istanza</span>
+             <span className={`text-sm font-medium hidden sm:inline ${step === 1 ? 'text-blue-600' : 'text-slate-500 group-hover:text-blue-600'}`}>Istanza</span>
            </button>
 
-           <div className="w-16 h-1 bg-slate-200 relative rounded-full overflow-hidden">
-             <div className={`absolute left-0 top-0 h-full bg-blue-600 transition-all duration-500 ease-out ${step === 2 ? 'w-full' : 'w-0'}`}></div>
+           <div className="w-8 sm:w-16 h-1 bg-slate-200 relative rounded-full overflow-hidden">
+             <div className={`absolute left-0 top-0 h-full bg-blue-600 transition-all duration-500 ease-out ${step > 1 ? 'w-full' : 'w-0'}`}></div>
            </div>
 
+           {/* Step 2 */}
            <button 
              type="button" 
              onClick={() => handleStepClick(2)}
              className={`flex items-center gap-2 focus:outline-none transition-all group ${step === 2 ? 'opacity-100' : 'opacity-70 hover:opacity-100'}`}
            >
-             <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-colors ${step === 2 ? 'border-indigo-600 bg-indigo-50 text-indigo-600 font-bold' : 'border-slate-300 text-slate-500'}`}>
-               2
+             <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-colors ${step === 2 ? 'border-indigo-600 bg-indigo-50 text-indigo-600 font-bold' : (step > 2 ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-300 text-slate-500')}`}>
+               {step > 2 ? <CheckCircle2 size={16} /> : 2}
              </div>
-             <span className={`text-sm font-medium ${step === 2 ? 'text-indigo-600' : 'text-slate-500 group-hover:text-indigo-600'}`}>Asset</span>
+             <span className={`text-sm font-medium hidden sm:inline ${step === 2 ? 'text-indigo-600' : 'text-slate-500 group-hover:text-indigo-600'}`}>Asset</span>
+           </button>
+
+           <div className="w-8 sm:w-16 h-1 bg-slate-200 relative rounded-full overflow-hidden">
+             <div className={`absolute left-0 top-0 h-full bg-indigo-600 transition-all duration-500 ease-out ${step > 2 ? 'w-full' : 'w-0'}`}></div>
+           </div>
+
+           {/* Step 3 */}
+           <button 
+             type="button" 
+             onClick={() => handleStepClick(3)}
+             className={`flex items-center gap-2 focus:outline-none transition-all group ${step === 3 ? 'opacity-100' : 'opacity-70 hover:opacity-100'}`}
+           >
+             <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-colors ${step === 3 ? 'border-yellow-500 bg-yellow-50 text-yellow-600 font-bold' : 'border-slate-300 text-slate-500'}`}>
+               3
+             </div>
+             <span className={`text-sm font-medium hidden sm:inline ${step === 3 ? 'text-yellow-600' : 'text-slate-500 group-hover:text-yellow-600'}`}>Wizard</span>
            </button>
         </div>
 
         {/* Form Card */}
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-100">
           <form onSubmit={handleSubmit} className="p-8">
-             {step === 1 ? renderStep1() : renderStep2()}
+             {step === 1 && renderStep1()}
+             {step === 2 && renderStep2()}
+             {step === 3 && renderStep3()}
           </form>
         </div>
         

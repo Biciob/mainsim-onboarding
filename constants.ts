@@ -1,3 +1,5 @@
+import { WizardMode } from "./types";
+
 export const DEFAULT_COLOR = "#0056b3"; // Mainsim-ish blue
 export const DOMAIN_SUFFIX = ".mainsim.cloud";
 export const PLACEHOLDER_IMAGE = "https://picsum.photos/800/600";
@@ -43,3 +45,37 @@ export const LABEL_INFO_OPTIONS = [
   "Localizzazione",
   "Logo aziendale"
 ];
+
+// Step 3 Constants
+export const WIZARD_PROCESS_OPTIONS = [
+  "Emergenze",
+  "Auto-manutenzione",
+  "Prenotazione stanze",
+  "Cancelleria",
+  "Rilascio badge",
+  "Segnalazioni rapide",
+  "Richiesta pulizia",
+  "Richieste IT"
+];
+
+export const WIZARD_DATA_OPTIONS = [
+  "Data e ora apertura",
+  "Nome richiedente",
+  "Organizzazione",
+  "Lettura contatori",
+  "Seriale asset",
+  "Priorità"
+];
+
+export const WIZARD_USER_OPTIONS = [
+  "Utenti finali",
+  "Fornitori",
+  "Referenti interni"
+];
+
+export const WIZARD_MODE_DESCRIPTIONS: Record<WizardMode, string> = {
+  [WizardMode.STANDARD]: "Ideale per setup semplici. Include fino a 2 flussi di richiesta base.",
+  [WizardMode.CUSTOM]: "Per esigenze specifiche. Gestisce fino a 5 flussi personalizzati.",
+  [WizardMode.ADVANCED]: "Alta complessità. Fino a 10 flussi con regole dinamiche avanzate.",
+  [WizardMode.MATRIX]: "Automazione totale. Routing automatico basato su matrice condizionale."
+};

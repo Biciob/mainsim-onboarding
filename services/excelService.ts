@@ -7,6 +7,7 @@ export const generateAndDownloadExcel = (data: OnboardingData, aiSummary: string
     // --- STEP 1 ---
     { "Sezione": "Istanza", "Campo": "Nome Istanza Desiderato", "Valore": data.instanceName, "Note": "Deve terminare con .mainsim.cloud" },
     { "Sezione": "Istanza", "Campo": "Colore Interfaccia (Hex)", "Valore": data.brandColor, "Note": "Colore primario login" },
+    { "Sezione": "Istanza", "Campo": "Logo Brand", "Valore": data.brandLogoName || "Non caricato", "Note": data.brandLogo ? "File incluso nei metadati" : "" },
     { "Sezione": "Sicurezza", "Campo": "Modalità Autenticazione", "Valore": data.authMode, "Note": "" },
     { "Sezione": "Sicurezza", "Campo": "Restrizioni Accesso", "Valore": data.restrictionType, "Note": data.restrictionDetails || "N/A" },
     { "Sezione": "IT", "Campo": "Requisiti Tecnici", "Valore": data.technicalRequirements, "Note": "" },
@@ -34,6 +35,16 @@ export const generateAndDownloadExcel = (data: OnboardingData, aiSummary: string
     { "Sezione": "Asset Tagging", "Campo": "Standard Utilizzato", "Valore": data.taggingStandard, "Note": "" },
     { "Sezione": "Asset Tagging", "Campo": "Info su Etichetta", "Valore": data.labelInfo.join(', '), "Note": "" },
 
+    // --- STEP 3: WIZARD ---
+    { "Sezione": "Wizard Smart Guide", "Campo": "Modalità Scelta", "Valore": data.wizardMode, "Note": "" },
+    { "Sezione": "Wizard Smart Guide", "Campo": "Processi Gestiti", "Valore": data.wizardProcesses.join(', '), "Note": "" },
+    { "Sezione": "Wizard Smart Guide", "Campo": "Dati Raccolti", "Valore": data.wizardDataPoints.join(', '), "Note": "" },
+    { "Sezione": "Wizard Smart Guide", "Campo": "Campi Custom", "Valore": data.wizardCustomFields, "Note": "" },
+    { "Sezione": "Wizard Smart Guide", "Campo": "Approvazione Richieste", "Valore": data.wizardHasApproval, "Note": data.wizardApprovalDetails },
+    { "Sezione": "Wizard Smart Guide", "Campo": "Assegnazione Automatica", "Valore": data.wizardAutoAssignment, "Note": "" },
+    { "Sezione": "Wizard Smart Guide", "Campo": "Target Utenza", "Valore": data.wizardUsers.join(', '), "Note": "" },
+    { "Sezione": "Wizard Smart Guide", "Campo": "Documentazione", "Valore": data.wizardDocsAvailable, "Note": data.wizardDocsFile },
+
     // --- AI SUMMARY ---
     { "Sezione": "Output AI", "Campo": "Brief Tecnico", "Valore": aiSummary, "Note": "Generato da Gemini 2.5 Flash" },
     { "Sezione": "Meta", "Campo": "Data Compilazione", "Valore": new Date().toLocaleString('it-IT'), "Note": "" }
@@ -54,7 +65,7 @@ export const generateAndDownloadExcel = (data: OnboardingData, aiSummary: string
   XLSX.utils.book_append_sheet(workbook, worksheet, "Configurazione Completa");
 
   const cleanName = data.instanceName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-  const fileName = `mainsim_config_v2_${cleanName}.xlsx`;
+  const fileName = `mainsim_config_v3_${cleanName}.xlsx`;
 
   XLSX.writeFile(workbook, fileName);
 };

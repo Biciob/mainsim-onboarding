@@ -17,6 +17,7 @@ export const generateImplementationBrief = async (data: OnboardingData): Promise
     SEZIONE 1: CONFIGURAZIONE ISTANZA
     - Nome Istanza: ${data.instanceName}
     - Colore Brand: ${data.brandColor}
+    - Logo: ${data.brandLogoName ? 'Presente' : 'Assente'}
     - Autenticazione: ${data.authMode}
     - Restrizioni: ${data.restrictionType} ${data.restrictionDetails ? `(${data.restrictionDetails})` : ''}
     - Requisiti Tecnici IT: ${data.technicalRequirements}
@@ -29,12 +30,19 @@ export const generateImplementationBrief = async (data: OnboardingData): Promise
     - Audit/Workflow: Audit Log: ${data.hasAuditLog}, Approvazione: ${data.hasApprovalFlow}
     - Tagging: ${data.qrCodeGoal}, Standard: ${data.taggingStandard}
 
-    Genera un breve paragrafo professionale (massimo 150 parole) in Italiano intitolato "Brief di Implementazione".
+    SEZIONE 3: WIZARD & SMART GUIDE
+    - Modalità Scelta: ${data.wizardMode}
+    - Processi Chiave: ${data.wizardProcesses.join(', ')}
+    - Utenti: ${data.wizardUsers.join(', ')}
+    - Automazione: Assegnazione Auto (${data.wizardAutoAssignment}), Approvazione (${data.wizardHasApproval})
+
+    Genera un breve paragrafo professionale (massimo 200 parole) in Italiano intitolato "Brief di Implementazione".
     
     Obiettivi del testo:
     1. Valutare la complessità del deploy (bassa/media/alta).
     2. Evidenziare criticità tecniche (es. SSO, integrazioni API).
-    3. Commentare la maturità della gestione asset (es. se hanno già dati strutturati e processi di approvazione).
+    3. Commentare la maturità della gestione asset.
+    4. Analizzare la strategia di richiesta (Wizard): se è standard o richiede logiche complesse (Matrix/Advanced).
   `;
 
   try {
