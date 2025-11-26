@@ -45,6 +45,24 @@ export const generateAndDownloadExcel = (data: OnboardingData, aiSummary: string
     { "Sezione": "Wizard Smart Guide", "Campo": "Target Utenza", "Valore": data.wizardUsers.join(', '), "Note": "" },
     { "Sezione": "Wizard Smart Guide", "Campo": "Documentazione", "Valore": data.wizardDocsAvailable, "Note": data.wizardDocsFile },
 
+    // --- STEP 4: EVENTI (MAINTENANCE) ---
+    { "Sezione": "Eventi - Reattiva", "Campo": "Tipologie Intervento", "Valore": data.reactiveTypes.join(', '), "Note": "" },
+    { "Sezione": "Eventi - Reattiva", "Campo": "Scope Sedi", "Valore": data.reactiveScope, "Note": "" },
+    { "Sezione": "Eventi - Reattiva", "Campo": "Campi Custom", "Valore": data.reactiveCustomFields, "Note": "" },
+
+    { "Sezione": "Eventi - Proattiva", "Campo": "Asset Soggetti", "Valore": data.proactiveAssets, "Note": "" },
+    { "Sezione": "Eventi - Proattiva", "Campo": "Vincoli", "Valore": data.proactiveConstraints.join(', '), "Note": "" },
+    { "Sezione": "Eventi - Proattiva", "Campo": "Campi Custom", "Valore": data.proactiveCustomFields, "Note": "" },
+    { "Sezione": "Eventi - Proattiva", "Campo": "Rendicontazione Costi", "Valore": data.enableCostReporting, "Note": "" },
+    { "Sezione": "Eventi - Proattiva", "Campo": "Scarico Materiali", "Valore": data.enableMaterialConsumption, "Note": "" },
+    { "Sezione": "Eventi - Proattiva", "Campo": "Manodopera Interna", "Valore": data.enableLaborReporting, "Note": "" },
+    { "Sezione": "Eventi - Proattiva", "Campo": "Costo Orario Standard", "Valore": data.enableStandardHourlyCost, "Note": "" },
+
+    { "Sezione": "Eventi - Correttive (CA)", "Campo": "Automatismo Attivo", "Valore": data.caEnableAutomation, "Note": "" },
+    { "Sezione": "Eventi - Correttive (CA)", "Campo": "Campi Follow-up", "Valore": data.caCustomFields, "Note": "" },
+    { "Sezione": "Eventi - Correttive (CA)", "Campo": "Workflow CA", "Valore": data.caWorkflow, "Note": "" },
+
+
     // --- AI SUMMARY ---
     { "Sezione": "Output AI", "Campo": "Brief Tecnico", "Valore": aiSummary, "Note": "Generato da Gemini 2.5 Flash" },
     { "Sezione": "Meta", "Campo": "Data Compilazione", "Valore": new Date().toLocaleString('it-IT'), "Note": "" }
@@ -65,7 +83,7 @@ export const generateAndDownloadExcel = (data: OnboardingData, aiSummary: string
   XLSX.utils.book_append_sheet(workbook, worksheet, "Configurazione Completa");
 
   const cleanName = data.instanceName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-  const fileName = `mainsim_config_v3_${cleanName}.xlsx`;
+  const fileName = `mainsim_config_v4_${cleanName}.xlsx`;
 
   XLSX.writeFile(workbook, fileName);
 };

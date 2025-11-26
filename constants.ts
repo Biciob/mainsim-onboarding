@@ -79,3 +79,34 @@ export const WIZARD_MODE_DESCRIPTIONS: Record<WizardMode, string> = {
   [WizardMode.ADVANCED]: "Alta complessità. Fino a 10 flussi con regole dinamiche avanzate.",
   [WizardMode.MATRIX]: "Automazione totale. Routing automatico basato su matrice condizionale."
 };
+
+// Step 4 Constants
+export const OBJECTIVES_POPUP_TEXT = `
+• Definire chiaramente le tipologie di intervento (reattiva, programmata, su condizione, azioni correttive, audit, ecc.) e i relativi processi di gestione;
+• Descrivere i workflow e le fasi operative per ciascuna tipologia di ordine di lavoro, inclusa la configurazione di campi personalizzati e regole di avanzamento;
+• Garantire la corretta configurazione del sistema per supportare tutte le esigenze di gestione attività e ordini di lavoro, comprese funzionalità avanzate come clonazione moduli, scripting, pagine personalizzate e esportazioni integrate con software di terze parti;
+• Stabilire criteri di priorità, automazioni e regole di escalation, per ottimizzare il coordinamento e la tempestività degli interventi;
+• Assicurare l’allineamento tra il sistema e le modalità operative del cliente, facilitando così l’adozione e la continuità operativa;
+• Supportare il team di sviluppo e implementazione con una guida precisa per la configurazione tecnica e funzionale del software;
+• Consentire un confronto e una validazione condivisa tra tutte le parti interessate (cliente, project manager, team tecnico, utenti finali), riducendo rischi di incomprensioni e ritardi.
+`;
+
+export const CA_POPUP_TEXT = `
+Le azioni correttive sono un follow-up successivo a un esito negativo di un'attività all'interno di una manutenzione periodica. 
+La CA (Azione Correttiva) viene generata alla chiusura della manutenzione periodica che contiene l'attività con un esito negativo. 
+Questo comportamento può essere gestito tramite un'impostazione di configurazione. 
+Il cliente può decidere, tramite questa impostazione, se abilitare o meno questa funzione e se modificare il titolo della CA. 
+Le CA possono seguire lo stesso flusso della manutenzione correttiva o avere un nuovo flusso e possono essere associate a campi personalizzati ed e-mail.
+`;
+
+export const REACTIVE_TYPES_OPTIONS = [
+  "Guasti improvvisi", 
+  "Emergenze", 
+  "Manutenzioni correttive"
+];
+
+export const CONSTRAINT_TYPES_OPTIONS = [
+  "Nessun vincolo",
+  "Vincoli normativi",
+  "Vincoli contrattuali"
+];

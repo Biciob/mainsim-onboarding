@@ -41,6 +41,29 @@ export enum WizardMode {
   MATRIX = "Matrix (routing automatico su condizioni)"
 }
 
+// Step 4 Enums
+export enum ReactiveType {
+  FAILURE = "Guasti improvvisi",
+  EMERGENCY = "Emergenze",
+  CORRECTIVE = "Manutenzioni correttive"
+}
+
+export enum LocationScope {
+  SAME = "Stessa per tutte le sedi",
+  VARIES = "Variano per sito/BU"
+}
+
+export enum ConstraintType {
+  NONE = "Nessun vincolo",
+  REGULATORY = "Vincoli normativi",
+  CONTRACTUAL = "Vincoli contrattuali"
+}
+
+export enum CorrectiveWorkflow {
+  SAME = "Stesso flusso reattiva",
+  CUSTOM = "Flusso personalizzato"
+}
+
 export interface OnboardingData {
   // Step 1
   instanceName: string;
@@ -91,6 +114,26 @@ export interface OnboardingData {
   wizardDocsAvailable: string; // "Si" | "No"
   wizardDocsFile: string; // Filename
   wizardMode: WizardMode;
+
+  // Step 4: Events (Maintenance)
+  // Reactive
+  reactiveTypes: string[];
+  reactiveScope: LocationScope;
+  reactiveCustomFields: string;
+  
+  // Proactive
+  proactiveAssets: string;
+  proactiveConstraints: string[];
+  proactiveCustomFields: string;
+  enableCostReporting: string; // "Si" | "No"
+  enableMaterialConsumption: string; // "Si" | "No"
+  enableLaborReporting: string; // "Si" | "No"
+  enableStandardHourlyCost: string; // "Si" | "No"
+
+  // Corrective Actions (CA)
+  caEnableAutomation: string; // "Si" | "No"
+  caCustomFields: string;
+  caWorkflow: CorrectiveWorkflow;
 }
 
 export interface ProcessingState {

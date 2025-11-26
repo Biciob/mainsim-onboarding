@@ -36,13 +36,19 @@ export const generateImplementationBrief = async (data: OnboardingData): Promise
     - Utenti: ${data.wizardUsers.join(', ')}
     - Automazione: Assegnazione Auto (${data.wizardAutoAssignment}), Approvazione (${data.wizardHasApproval})
 
-    Genera un breve paragrafo professionale (massimo 200 parole) in Italiano intitolato "Brief di Implementazione".
+    SEZIONE 4: EVENTI E MANUTENZIONE
+    - Reattiva: ${data.reactiveTypes.join(', ')} (Scope: ${data.reactiveScope})
+    - Proattiva: Vincoli (${data.proactiveConstraints.join(', ')}). Moduli attivi: Costi (${data.enableCostReporting}), Materiali (${data.enableMaterialConsumption}), Manodopera (${data.enableLaborReporting}).
+    - Azioni Correttive: Automazione (${data.caEnableAutomation}), Workflow (${data.caWorkflow}).
+
+    Genera un breve paragrafo professionale (massimo 250 parole) in Italiano intitolato "Brief di Implementazione".
     
     Obiettivi del testo:
-    1. Valutare la complessità del deploy (bassa/media/alta).
+    1. Valutare la complessità del deploy.
     2. Evidenziare criticità tecniche (es. SSO, integrazioni API).
     3. Commentare la maturità della gestione asset.
-    4. Analizzare la strategia di richiesta (Wizard): se è standard o richiede logiche complesse (Matrix/Advanced).
+    4. Analizzare la strategia di richiesta (Wizard).
+    5. Descrivere sinteticamente l'approccio alla manutenzione (Eventi).
   `;
 
   try {

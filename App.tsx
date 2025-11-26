@@ -16,7 +16,12 @@ import {
   PlayCircle,
   Zap,
   Layout,
-  Upload
+  Upload,
+  CalendarClock,
+  Wrench,
+  AlertTriangle,
+  Info,
+  X
 } from 'lucide-react';
 import { InputGroup } from './components/InputGroup';
 import { 
@@ -27,7 +32,9 @@ import {
   AssetDataFormat,
   MainsimRole,
   QrCodeGoal,
-  WizardMode
+  WizardMode,
+  LocationScope,
+  CorrectiveWorkflow
 } from './types';
 import { 
   DEFAULT_COLOR, 
@@ -38,13 +45,20 @@ import {
   WIZARD_PROCESS_OPTIONS,
   WIZARD_DATA_OPTIONS,
   WIZARD_USER_OPTIONS,
-  WIZARD_MODE_DESCRIPTIONS
+  WIZARD_MODE_DESCRIPTIONS,
+  OBJECTIVES_POPUP_TEXT,
+  CA_POPUP_TEXT,
+  REACTIVE_TYPES_OPTIONS,
+  CONSTRAINT_TYPES_OPTIONS
 } from './constants';
 import { generateImplementationBrief } from './services/geminiService';
 import { generateAndDownloadExcel } from './services/excelService';
 
 const App: React.FC = () => {
   const [step, setStep] = useState<number>(1);
+  const [showObjectivesModal, setShowObjectivesModal] = useState(false);
+  const [showCAModal, setShowCAModal] = useState(false);
+
   const [formData, setFormData] = useState<OnboardingData>({
     // Step 1
     instanceName: '',
@@ -90,7 +104,22 @@ const App: React.FC = () => {
     wizardUsers: [],
     wizardDocsAvailable: 'No',
     wizardDocsFile: '',
-    wizardMode: WizardMode.STANDARD
+    wizardMode: WizardMode.STANDARD,
+
+    // Step 4
+    reactiveTypes: [],
+    reactiveScope: LocationScope.SAME,
+    reactiveCustomFields: '',
+    proactiveAssets: '',
+    proactiveConstraints: [],
+    proactiveCustomFields: '',
+    enableCostReporting: 'No',
+    enableMaterialConsumption: 'No',
+    enableLaborReporting: 'No',
+    enableStandardHourlyCost: 'No',
+    caEnableAutomation: 'No',
+    caCustomFields: '',
+    caWorkflow: CorrectiveWorkflow.SAME
   });
 
   const [processing, setProcessing] = useState<ProcessingState>({ status: 'idle' });
@@ -149,6 +178,20 @@ const App: React.FC = () => {
     });
   };
 
+  const toggleReactiveType = (type: string) => {
+    setFormData(prev => {
+      const exists = prev.reactiveTypes.includes(type);
+      return { ...prev, reactiveTypes: exists ? prev.reactiveTypes.filter(t => t !== type) : [...prev.reactiveTypes, type] };
+    });
+  };
+
+  const toggleProactiveConstraint = (type: string) => {
+    setFormData(prev => {
+      const exists = prev.proactiveConstraints.includes(type);
+      return { ...prev, proactiveConstraints: exists ? prev.proactiveConstraints.filter(t => t !== type) : [...prev.proactiveConstraints, type] };
+    });
+  };
+
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
@@ -201,6 +244,13 @@ const App: React.FC = () => {
     return newErrors;
   };
 
+  const getStep4Errors = () => {
+    const newErrors: Partial<Record<keyof OnboardingData, string>> = {};
+    if (formData.reactiveTypes.length === 0) newErrors.reactiveTypes = "Seleziona almeno una tipologia.";
+    if (!formData.proactiveAssets.trim()) newErrors.proactiveAssets = "Indicare gli asset.";
+    return newErrors;
+  };
+
   // --- Navigation ---
 
   const handleStepClick = (targetStep: number) => {
@@ -213,6 +263,7 @@ const App: React.FC = () => {
     let stepErrors = {};
     if (step === 1) stepErrors = getStep1Errors();
     if (step === 2) stepErrors = getStep2Errors();
+    if (step === 3) stepErrors = getStep3Errors();
 
     if (Object.keys(stepErrors).length > 0) {
       setErrors(stepErrors);
@@ -234,7 +285,8 @@ const App: React.FC = () => {
     const step1Errors = getStep1Errors();
     const step2Errors = getStep2Errors();
     const step3Errors = getStep3Errors();
-    const allErrors = { ...step1Errors, ...step2Errors, ...step3Errors };
+    const step4Errors = getStep4Errors();
+    const allErrors = { ...step1Errors, ...step2Errors, ...step3Errors, ...step4Errors };
 
     if (Object.keys(allErrors).length > 0) {
       setErrors(allErrors);
@@ -745,6 +797,213 @@ const App: React.FC = () => {
            ))}
         </div>
       </section>
+      
+      <div className="pt-6 flex justify-end">
+        <button type="button" onClick={handleNext} className="flex items-center gap-2 bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transition-all">
+          Prosegui: Eventi <ArrowRight size={20} />
+        </button>
+      </div>
+    </div>
+  );
+
+  const renderStep4 = () => (
+    <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
+      {/* Intro */}
+      <div className="bg-rose-50 border border-rose-100 rounded-xl p-4 flex flex-col md:flex-row gap-4 items-start justify-between">
+         <div className="flex gap-4">
+            <div className="bg-rose-100 p-2 rounded-lg text-rose-600 h-fit">
+              <CalendarClock size={24} />
+            </div>
+            <div>
+              <h3 className="font-bold text-rose-900">Eventi & Manutenzione</h3>
+              <p className="text-sm text-rose-800 mt-1 max-w-lg">
+                Fornire una descrizione dettagliata dei requisiti funzionali e operativi per la gestione degli ordini di lavoro.
+              </p>
+            </div>
+         </div>
+         <button 
+           type="button"
+           onClick={() => setShowObjectivesModal(true)}
+           className="flex items-center gap-2 bg-white text-rose-600 px-4 py-2 rounded-lg text-sm font-semibold border border-rose-200 hover:bg-rose-50 transition-colors shadow-sm whitespace-nowrap"
+         >
+           <Info size={16} />
+           Obiettivi
+         </button>
+      </div>
+
+      {/* Reactive Maintenance */}
+      <section className="space-y-6">
+        <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+          <AlertTriangle className="text-rose-600" size={24} />
+          <h2 className="text-xl font-bold text-slate-800">Manutenzione Reattiva</h2>
+        </div>
+
+        <InputGroup label="Tipologie di Intervento" error={errors.reactiveTypes}>
+           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+             {REACTIVE_TYPES_OPTIONS.map(opt => (
+               <label key={opt} className={`flex items-center p-3 border rounded-lg cursor-pointer transition-all ${formData.reactiveTypes.includes(opt) ? 'bg-rose-50 border-rose-500' : 'hover:bg-slate-50 border-slate-200'}`}>
+                 <input type="checkbox" className="hidden" checked={formData.reactiveTypes.includes(opt)} onChange={() => toggleReactiveType(opt)} />
+                 <div className={`w-4 h-4 rounded border flex items-center justify-center mr-2 ${formData.reactiveTypes.includes(opt) ? 'bg-rose-500 border-rose-500' : 'border-slate-300'}`}>
+                   {formData.reactiveTypes.includes(opt) && <CheckCircle2 size={12} className="text-white" />}
+                 </div>
+                 <span className="text-sm font-medium text-slate-700">{opt}</span>
+               </label>
+             ))}
+           </div>
+        </InputGroup>
+
+        <InputGroup label="Validità Tipologie (Scope)">
+          <div className="flex gap-4">
+             {Object.values(LocationScope).map(opt => (
+               <label key={opt} className="flex items-center cursor-pointer">
+                 <input type="radio" name="reactiveScope" checked={formData.reactiveScope === opt} onChange={() => setFormData({...formData, reactiveScope: opt})} className="text-rose-600" />
+                 <span className="ml-2 text-sm text-slate-700">{opt}</span>
+               </label>
+             ))}
+          </div>
+        </InputGroup>
+
+        <InputGroup label="Campi Custom Reattiva">
+           <textarea 
+             placeholder="Es: Priorità - Livello di urgenza (Alta/Media/Bassa)..." 
+             value={formData.reactiveCustomFields} 
+             onChange={(e) => setFormData({...formData, reactiveCustomFields: e.target.value})}
+             className="w-full p-3 border border-slate-300 rounded-lg text-sm h-24 focus:ring-2 focus:ring-rose-500 outline-none" 
+           />
+        </InputGroup>
+      </section>
+
+      {/* Proactive Maintenance */}
+      <section className="space-y-6 pt-6 border-t border-slate-200">
+        <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+          <Wrench className="text-rose-600" size={24} />
+          <h2 className="text-xl font-bold text-slate-800">Manutenzione Proattiva (Time-based)</h2>
+        </div>
+
+        <InputGroup label="Asset Soggetti" description="Quali asset o categorie richiedono manutenzione periodica?" error={errors.proactiveAssets}>
+          <textarea 
+             value={formData.proactiveAssets} 
+             onChange={(e) => setFormData({...formData, proactiveAssets: e.target.value})}
+             className="w-full p-3 border border-slate-300 rounded-lg text-sm h-20 focus:ring-2 focus:ring-rose-500 outline-none" 
+           />
+        </InputGroup>
+
+        <InputGroup label="Vincoli Normativi/Contrattuali">
+           <div className="flex flex-wrap gap-2">
+             {CONSTRAINT_TYPES_OPTIONS.map(opt => (
+               <label key={opt} className={`px-4 py-2 rounded-full border cursor-pointer text-sm transition-colors ${formData.proactiveConstraints.includes(opt) ? 'bg-rose-500 text-white border-rose-500' : 'bg-white text-slate-600 border-slate-300 hover:border-rose-300'}`}>
+                 <input type="checkbox" className="hidden" checked={formData.proactiveConstraints.includes(opt)} onChange={() => toggleProactiveConstraint(opt)} />
+                 {opt}
+               </label>
+             ))}
+           </div>
+        </InputGroup>
+
+        <InputGroup label="Campi Custom Proattiva">
+           <textarea 
+             placeholder="Es: Tecnico Certificato - Richiesto patentino..." 
+             value={formData.proactiveCustomFields} 
+             onChange={(e) => setFormData({...formData, proactiveCustomFields: e.target.value})}
+             className="w-full p-3 border border-slate-300 rounded-lg text-sm h-20 focus:ring-2 focus:ring-rose-500 outline-none" 
+           />
+        </InputGroup>
+
+        <div className="bg-slate-50 rounded-lg p-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+           <div>
+             <span className="block text-sm font-semibold text-slate-700 mb-2">Rendicontazione Costi?</span>
+             <div className="flex gap-4">
+               {['Si', 'No'].map(opt => (
+                 <label key={`costs-${opt}`} className="flex items-center cursor-pointer">
+                   <input type="radio" name="costRep" checked={formData.enableCostReporting === opt} onChange={() => setFormData({...formData, enableCostReporting: opt})} className="text-rose-600" />
+                   <span className="ml-2 text-sm">{opt}</span>
+                 </label>
+               ))}
+             </div>
+           </div>
+           <div>
+             <span className="block text-sm font-semibold text-slate-700 mb-2">Scarico Materiali?</span>
+             <div className="flex gap-4">
+               {['Si', 'No'].map(opt => (
+                 <label key={`mat-${opt}`} className="flex items-center cursor-pointer">
+                   <input type="radio" name="matRep" checked={formData.enableMaterialConsumption === opt} onChange={() => setFormData({...formData, enableMaterialConsumption: opt})} className="text-rose-600" />
+                   <span className="ml-2 text-sm">{opt}</span>
+                 </label>
+               ))}
+             </div>
+           </div>
+           <div>
+             <span className="block text-sm font-semibold text-slate-700 mb-2">Consuntivo Manodopera?</span>
+             <div className="flex gap-4">
+               {['Si', 'No'].map(opt => (
+                 <label key={`labor-${opt}`} className="flex items-center cursor-pointer">
+                   <input type="radio" name="laborRep" checked={formData.enableLaborReporting === opt} onChange={() => setFormData({...formData, enableLaborReporting: opt})} className="text-rose-600" />
+                   <span className="ml-2 text-sm">{opt}</span>
+                 </label>
+               ))}
+             </div>
+           </div>
+           <div>
+             <span className="block text-sm font-semibold text-slate-700 mb-2">Costo Orario Standard?</span>
+             <div className="flex gap-4">
+               {['Si', 'No'].map(opt => (
+                 <label key={`stdcost-${opt}`} className="flex items-center cursor-pointer">
+                   <input type="radio" name="stdCost" checked={formData.enableStandardHourlyCost === opt} onChange={() => setFormData({...formData, enableStandardHourlyCost: opt})} className="text-rose-600" />
+                   <span className="ml-2 text-sm">{opt}</span>
+                 </label>
+               ))}
+             </div>
+           </div>
+        </div>
+      </section>
+
+      {/* Corrective Actions */}
+      <section className="space-y-6 pt-6 border-t border-slate-200">
+        <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+           <div className="flex items-center gap-2">
+              <CheckCircle2 className="text-rose-600" size={24} />
+              <h2 className="text-xl font-bold text-slate-800">Azioni Correttive</h2>
+           </div>
+           <button 
+             type="button" 
+             onClick={() => setShowCAModal(true)}
+             className="text-rose-600 hover:text-rose-700 text-sm font-medium flex items-center gap-1"
+           >
+             <Info size={16} /> Cosa sono?
+           </button>
+        </div>
+
+        <InputGroup label="Abilitare Automatismo?" description="Generazione automatica CA su esito negativo.">
+          <div className="flex gap-4">
+               {['Si', 'No'].map(opt => (
+                 <label key={`ca-${opt}`} className="flex items-center cursor-pointer">
+                   <input type="radio" name="caAuto" checked={formData.caEnableAutomation === opt} onChange={() => setFormData({...formData, caEnableAutomation: opt})} className="text-rose-600" />
+                   <span className="ml-2 text-sm">{opt}</span>
+                 </label>
+               ))}
+           </div>
+        </InputGroup>
+
+        <InputGroup label="Campi Follow-up">
+           <textarea 
+             placeholder="Campi specifici per CA..." 
+             value={formData.caCustomFields} 
+             onChange={(e) => setFormData({...formData, caCustomFields: e.target.value})}
+             className="w-full p-3 border border-slate-300 rounded-lg text-sm h-20 focus:ring-2 focus:ring-rose-500 outline-none" 
+           />
+        </InputGroup>
+
+        <InputGroup label="Flusso Workflow">
+           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+             {Object.values(CorrectiveWorkflow).map((wf) => (
+               <label key={wf} className={`flex items-center p-3 border rounded-lg cursor-pointer ${formData.caWorkflow === wf ? 'border-rose-500 bg-rose-50' : 'border-slate-200'}`}>
+                 <input type="radio" name="caWorkflow" value={wf} checked={formData.caWorkflow === wf} onChange={() => setFormData({...formData, caWorkflow: wf})} className="text-rose-600 focus:ring-rose-500" />
+                 <span className="ml-2 text-sm font-medium">{wf}</span>
+               </label>
+             ))}
+           </div>
+        </InputGroup>
+
+      </section>
 
       {/* Navigation Actions */}
       <div className="pt-6 border-t border-slate-200 flex justify-between items-center">
@@ -780,6 +1039,23 @@ const App: React.FC = () => {
 
   // --- Main View ---
 
+  const Modal = ({ isOpen, onClose, title, content }: { isOpen: boolean, onClose: () => void, title: string, content: string }) => {
+    if (!isOpen) return null;
+    return (
+      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 relative animate-in zoom-in-95 duration-200">
+          <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
+            <X size={24} />
+          </button>
+          <h3 className="text-xl font-bold text-slate-800 mb-4 pr-8">{title}</h3>
+          <p className="text-slate-600 whitespace-pre-line leading-relaxed text-sm">
+            {content.trim()}
+          </p>
+        </div>
+      </div>
+    );
+  };
+
   if (processing.status === 'success') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center p-4">
@@ -791,7 +1067,7 @@ const App: React.FC = () => {
           </div>
           <h2 className="text-3xl font-bold text-slate-800 mb-2">Onboarding Completato!</h2>
           <p className="text-slate-600 mb-6">
-            Tutti i dati (Istanza, Asset, Wizard) sono stati acquisiti.
+            Tutti i dati sono stati acquisiti correttamente.
           </p>
 
           <div className="bg-slate-50 p-4 rounded-lg text-left mb-6 border border-slate-200 max-h-60 overflow-y-auto">
@@ -824,6 +1100,9 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 font-sans">
+      <Modal isOpen={showObjectivesModal} onClose={() => setShowObjectivesModal(false)} title="Obiettivi Eventi" content={OBJECTIVES_POPUP_TEXT} />
+      <Modal isOpen={showCAModal} onClose={() => setShowCAModal(false)} title="Azioni Correttive" content={CA_POPUP_TEXT} />
+
       <div className="max-w-4xl mx-auto">
         
         {/* Header */}
@@ -832,54 +1111,54 @@ const App: React.FC = () => {
             Mainsim <span className="text-blue-600">Onboarding</span>
           </h1>
           <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-            Wizard di configurazione: Istanza, Asset & Smart Guide
+            Wizard di configurazione: Istanza, Asset, Wizard & Eventi
           </p>
         </div>
 
         {/* Step Indicator (Interactive) */}
         <div className="mb-8 flex justify-center items-center gap-4">
            {/* Step 1 */}
-           <button 
-             type="button" 
-             onClick={() => handleStepClick(1)}
-             className={`flex items-center gap-2 focus:outline-none transition-all group ${step === 1 ? 'opacity-100' : 'opacity-70 hover:opacity-100'}`}
-           >
+           <button type="button" onClick={() => handleStepClick(1)} className={`flex items-center gap-2 focus:outline-none transition-all group ${step === 1 ? 'opacity-100' : 'opacity-70 hover:opacity-100'}`}>
              <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-colors ${step === 1 ? 'border-blue-600 bg-blue-50 text-blue-600 font-bold' : (step > 1 ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-300 text-slate-500')}`}>
                {step > 1 ? <CheckCircle2 size={16} /> : 1}
              </div>
              <span className={`text-sm font-medium hidden sm:inline ${step === 1 ? 'text-blue-600' : 'text-slate-500 group-hover:text-blue-600'}`}>Istanza</span>
            </button>
 
-           <div className="w-8 sm:w-16 h-1 bg-slate-200 relative rounded-full overflow-hidden">
+           <div className="w-6 sm:w-12 h-1 bg-slate-200 relative rounded-full overflow-hidden">
              <div className={`absolute left-0 top-0 h-full bg-blue-600 transition-all duration-500 ease-out ${step > 1 ? 'w-full' : 'w-0'}`}></div>
            </div>
 
            {/* Step 2 */}
-           <button 
-             type="button" 
-             onClick={() => handleStepClick(2)}
-             className={`flex items-center gap-2 focus:outline-none transition-all group ${step === 2 ? 'opacity-100' : 'opacity-70 hover:opacity-100'}`}
-           >
+           <button type="button" onClick={() => handleStepClick(2)} className={`flex items-center gap-2 focus:outline-none transition-all group ${step === 2 ? 'opacity-100' : 'opacity-70 hover:opacity-100'}`}>
              <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-colors ${step === 2 ? 'border-indigo-600 bg-indigo-50 text-indigo-600 font-bold' : (step > 2 ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-300 text-slate-500')}`}>
                {step > 2 ? <CheckCircle2 size={16} /> : 2}
              </div>
              <span className={`text-sm font-medium hidden sm:inline ${step === 2 ? 'text-indigo-600' : 'text-slate-500 group-hover:text-indigo-600'}`}>Asset</span>
            </button>
 
-           <div className="w-8 sm:w-16 h-1 bg-slate-200 relative rounded-full overflow-hidden">
+           <div className="w-6 sm:w-12 h-1 bg-slate-200 relative rounded-full overflow-hidden">
              <div className={`absolute left-0 top-0 h-full bg-indigo-600 transition-all duration-500 ease-out ${step > 2 ? 'w-full' : 'w-0'}`}></div>
            </div>
 
            {/* Step 3 */}
-           <button 
-             type="button" 
-             onClick={() => handleStepClick(3)}
-             className={`flex items-center gap-2 focus:outline-none transition-all group ${step === 3 ? 'opacity-100' : 'opacity-70 hover:opacity-100'}`}
-           >
-             <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-colors ${step === 3 ? 'border-yellow-500 bg-yellow-50 text-yellow-600 font-bold' : 'border-slate-300 text-slate-500'}`}>
-               3
+           <button type="button" onClick={() => handleStepClick(3)} className={`flex items-center gap-2 focus:outline-none transition-all group ${step === 3 ? 'opacity-100' : 'opacity-70 hover:opacity-100'}`}>
+             <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-colors ${step === 3 ? 'border-yellow-500 bg-yellow-50 text-yellow-600 font-bold' : (step > 3 ? 'border-yellow-500 bg-yellow-500 text-white' : 'border-slate-300 text-slate-500')}`}>
+               {step > 3 ? <CheckCircle2 size={16} /> : 3}
              </div>
              <span className={`text-sm font-medium hidden sm:inline ${step === 3 ? 'text-yellow-600' : 'text-slate-500 group-hover:text-yellow-600'}`}>Wizard</span>
+           </button>
+
+           <div className="w-6 sm:w-12 h-1 bg-slate-200 relative rounded-full overflow-hidden">
+             <div className={`absolute left-0 top-0 h-full bg-yellow-500 transition-all duration-500 ease-out ${step > 3 ? 'w-full' : 'w-0'}`}></div>
+           </div>
+
+           {/* Step 4 */}
+           <button type="button" onClick={() => handleStepClick(4)} className={`flex items-center gap-2 focus:outline-none transition-all group ${step === 4 ? 'opacity-100' : 'opacity-70 hover:opacity-100'}`}>
+             <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-colors ${step === 4 ? 'border-rose-600 bg-rose-50 text-rose-600 font-bold' : 'border-slate-300 text-slate-500'}`}>
+               4
+             </div>
+             <span className={`text-sm font-medium hidden sm:inline ${step === 4 ? 'text-rose-600' : 'text-slate-500 group-hover:text-rose-600'}`}>Eventi</span>
            </button>
         </div>
 
@@ -889,6 +1168,7 @@ const App: React.FC = () => {
              {step === 1 && renderStep1()}
              {step === 2 && renderStep2()}
              {step === 3 && renderStep3()}
+             {step === 4 && renderStep4()}
           </form>
         </div>
         
