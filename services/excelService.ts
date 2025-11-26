@@ -62,6 +62,52 @@ export const generateAndDownloadExcel = (data: OnboardingData, aiSummary: string
     { "Sezione": "Eventi - Correttive (CA)", "Campo": "Campi Follow-up", "Valore": data.caCustomFields, "Note": "" },
     { "Sezione": "Eventi - Correttive (CA)", "Campo": "Workflow CA", "Valore": data.caWorkflow, "Note": "" },
 
+    // --- STEP 5: TEMPLATE & AUDIT ---
+    { "Sezione": "Template", "Campo": "Tipologie Template", "Valore": data.templateTypes.join(', '), "Note": "" },
+    { "Sezione": "Template", "Campo": "Contenuto Template", "Valore": data.templateInclusions.join(', '), "Note": "" },
+    { "Sezione": "Template", "Campo": "Importazione Esistenti", "Valore": data.importExistingModels, "Note": data.importExistingModelsDetails },
+    { "Sezione": "Template", "Campo": "Campi Obbligatori", "Valore": data.templateMandatoryFields, "Note": "" },
+    { "Sezione": "Template", "Campo": "Trigger Utilizzo", "Valore": data.templateUsageTriggers.join(', '), "Note": "" },
+    { "Sezione": "Template", "Campo": "Permessi (Gestione)", "Valore": data.templatePermissions, "Note": "" },
+    { "Sezione": "Template", "Campo": "Workflow Specifico", "Valore": data.templateWorkflowSpecific, "Note": "" },
+
+    { "Sezione": "Audit", "Campo": "Tipologie Audit", "Valore": data.auditTypes.join(', '), "Note": "" },
+    { "Sezione": "Audit", "Campo": "Legame/Scope", "Valore": data.auditLinkedTo.join(', '), "Note": "" },
+    { "Sezione": "Audit", "Campo": "Frequenza", "Valore": data.auditFrequency.join(', '), "Note": "" },
+    { "Sezione": "Audit", "Campo": "Esecutori", "Valore": data.auditExecutors, "Note": "" },
+    { "Sezione": "Audit", "Campo": "Import Dati Pregressi", "Valore": data.importPastAuditData, "Note": "" },
+    { "Sezione": "Audit", "Campo": "Import Checklist Esistenti", "Valore": data.importChecklists, "Note": "" },
+
+    // --- STEP 6: WORKFLOW DESIGN ---
+    // Reactive
+    { "Sezione": "Workflow - Reattiva", "Campo": "Chi apre OdL?", "Valore": data.wfReactiveOpeners.join(', '), "Note": "" },
+    { "Sezione": "Workflow - Reattiva", "Campo": "Automatismi Apertura", "Valore": data.wfReactiveAutoCreation.join(', '), "Note": "" },
+    { "Sezione": "Workflow - Reattiva", "Campo": "Fasi Operative (Sequenza)", "Valore": data.wfReactivePhases.join(' -> '), "Note": "" },
+    { "Sezione": "Workflow - Reattiva", "Campo": "Approvazione Tecnica/Eco", "Valore": data.wfReactiveApproval, "Note": "" },
+    { "Sezione": "Workflow - Reattiva", "Campo": "Tipo Assegnazione", "Valore": data.wfReactiveAssignmentType, "Note": `Ruoli: ${data.wfReactiveAssignerRoles}` },
+    { "Sezione": "Workflow - Reattiva", "Campo": "Assegnato a", "Valore": data.wfReactiveAssignTo.join(', '), "Note": "" },
+    { "Sezione": "Workflow - Reattiva", "Campo": "Allegati Necessari", "Valore": data.wfReactiveAttachments, "Note": "" },
+    { "Sezione": "Workflow - Reattiva", "Campo": "Obbligatori per Chiusura", "Valore": data.wfReactiveClosureMandatory.join(', '), "Note": "" },
+    { "Sezione": "Workflow - Reattiva", "Campo": "RCA Obbligatoria", "Valore": data.wfReactiveRCA, "Note": "" },
+    { "Sezione": "Workflow - Reattiva", "Campo": "Validazione Post-Intervento", "Valore": data.wfReactiveValidation, "Note": "" },
+    { "Sezione": "Workflow - Reattiva", "Campo": "Approvazione Cliente", "Valore": data.wfReactiveClientApproval, "Note": "" },
+    { "Sezione": "Workflow - Reattiva", "Campo": "Notifiche (Fasi)", "Valore": data.wfReactiveNotifications.join(', '), "Note": "" },
+    { "Sezione": "Workflow - Reattiva", "Campo": "Report Automatici", "Valore": data.wfReactiveReport, "Note": data.wfReactiveReportDetails },
+    { "Sezione": "Workflow - Reattiva", "Campo": "Visibilità Stati", "Valore": data.wfReactiveVisibility, "Note": "" },
+    { "Sezione": "Workflow - Reattiva", "Campo": "Restrizioni Campi", "Valore": data.wfReactiveRestrictions, "Note": data.wfReactiveRestrictionsDetails },
+
+    // Proactive
+    { "Sezione": "Workflow - Proattiva", "Campo": "Creazione Attività", "Valore": data.wfProactiveCreation.join(', '), "Note": "" },
+    { "Sezione": "Workflow - Proattiva", "Campo": "Chi Pianifica", "Valore": data.wfProactivePlanners.join(', '), "Note": "" },
+    { "Sezione": "Workflow - Proattiva", "Campo": "Promemoria", "Valore": data.wfProactiveReminders, "Note": "" },
+    { "Sezione": "Workflow - Proattiva", "Campo": "Team Dedicato", "Valore": data.wfProactiveTeam, "Note": "" },
+    { "Sezione": "Workflow - Proattiva", "Campo": "Checklist", "Valore": data.wfProactiveChecklist, "Note": "" },
+    { "Sezione": "Workflow - Proattiva", "Campo": "Allegati", "Valore": data.wfProactiveAttachments, "Note": "" },
+    { "Sezione": "Workflow - Proattiva", "Campo": "Campi Obbligatori", "Valore": data.wfProactiveMandatoryFields, "Note": "" },
+    { "Sezione": "Workflow - Proattiva", "Campo": "Info Chiusura", "Valore": data.wfProactiveClosureInfo, "Note": "" },
+    { "Sezione": "Workflow - Proattiva", "Campo": "Validazione Finale", "Valore": data.wfProactiveValidation, "Note": `Ruolo: ${data.wfProactiveValidatorRole}` },
+    { "Sezione": "Workflow - Proattiva", "Campo": "Permessi Gestione", "Valore": data.wfProactivePermissions.join(', '), "Note": "" },
+    { "Sezione": "Workflow - Proattiva", "Campo": "Fasi Operative", "Valore": data.wfProactivePhases.join(' -> '), "Note": "" },
 
     // --- AI SUMMARY ---
     { "Sezione": "Output AI", "Campo": "Brief Tecnico", "Valore": aiSummary, "Note": "Generato da Gemini 2.5 Flash" },
@@ -83,7 +129,7 @@ export const generateAndDownloadExcel = (data: OnboardingData, aiSummary: string
   XLSX.utils.book_append_sheet(workbook, worksheet, "Configurazione Completa");
 
   const cleanName = data.instanceName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-  const fileName = `mainsim_config_v4_${cleanName}.xlsx`;
+  const fileName = `mainsim_config_v6_${cleanName}.xlsx`;
 
   XLSX.writeFile(workbook, fileName);
 };

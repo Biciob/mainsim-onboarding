@@ -134,6 +134,60 @@ export interface OnboardingData {
   caEnableAutomation: string; // "Si" | "No"
   caCustomFields: string;
   caWorkflow: CorrectiveWorkflow;
+
+  // Step 5: Template & Audit
+  // Templates
+  templateTypes: string[];
+  templateInclusions: string[];
+  importExistingModels: string; // "Si" | "No"
+  importExistingModelsDetails: string;
+  templateMandatoryFields: string;
+  templateUsageTriggers: string[];
+  templatePermissions: string; // Create/Assign/Edit
+  templateWorkflowSpecific: string; // "Si" | "No"
+
+  // Audits
+  auditTypes: string[];
+  auditLinkedTo: string[];
+  auditFrequency: string[];
+  auditExecutors: string;
+  importPastAuditData: string; // "Si" | "No"
+  importChecklists: string; // "Si" | "No"
+
+  // Step 6: Workflow Design
+  // Reactive Workflow
+  wfReactiveOpeners: string[];
+  wfReactiveAutoCreation: string[];
+  wfReactivePhases: string[]; // Ordered list
+  wfReactiveApproval: string; // "Si" | "No"
+  wfReactiveAssignmentType: string; // "Manuale" | "Automatico"
+  wfReactiveAssignerRoles: string;
+  wfReactiveAssignTo: string[]; // Internal/External
+  wfReactiveAttachments: string; // "Si" | "No"
+  wfReactiveClosureMandatory: string[];
+  wfReactiveRCA: string; // "Si" | "No"
+  wfReactiveValidation: string; // "Si" | "No"
+  wfReactiveClientApproval: string; // "Si" | "No"
+  wfReactiveNotifications: string[];
+  wfReactiveReport: string; // "Si" | "No"
+  wfReactiveReportDetails: string;
+  wfReactiveVisibility: string;
+  wfReactiveRestrictions: string; // "Si" | "No"
+  wfReactiveRestrictionsDetails: string;
+
+  // Proactive Workflow
+  wfProactiveCreation: string[];
+  wfProactivePlanners: string[];
+  wfProactiveReminders: string; // "Si" | "No"
+  wfProactiveTeam: string; // "Si" | "No"
+  wfProactiveChecklist: string; // "Si" | "No"
+  wfProactiveAttachments: string; // "Si" | "No"
+  wfProactiveMandatoryFields: string;
+  wfProactiveClosureInfo: string;
+  wfProactiveValidation: string; // "Si" | "No"
+  wfProactiveValidatorRole: string;
+  wfProactivePermissions: string[];
+  wfProactivePhases: string[]; // Ordered list
 }
 
 export interface ProcessingState {

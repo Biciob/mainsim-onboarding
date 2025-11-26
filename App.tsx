@@ -21,7 +21,10 @@ import {
   Wrench,
   AlertTriangle,
   Info,
-  X
+  X,
+  ClipboardCheck,
+  FileCheck,
+  GitPullRequest
 } from 'lucide-react';
 import { InputGroup } from './components/InputGroup';
 import { 
@@ -49,7 +52,26 @@ import {
   OBJECTIVES_POPUP_TEXT,
   CA_POPUP_TEXT,
   REACTIVE_TYPES_OPTIONS,
-  CONSTRAINT_TYPES_OPTIONS
+  CONSTRAINT_TYPES_OPTIONS,
+  AUDIT_OBJECTIVES_POPUP_TEXT,
+  TEMPLATE_TYPE_OPTIONS,
+  TEMPLATE_INCLUSION_OPTIONS,
+  TEMPLATE_TRIGGER_OPTIONS,
+  AUDIT_TYPE_OPTIONS,
+  AUDIT_LINK_OPTIONS,
+  AUDIT_FREQUENCY_OPTIONS,
+  WF_OPENER_OPTIONS,
+  WF_AUTO_CREATION_OPTIONS,
+  WF_REACTIVE_STATES,
+  WF_ASSIGN_TO_OPTIONS,
+  WF_CLOSURE_OPTIONS,
+  WF_NOTIFICATIONS_OPTIONS,
+  WF_PROACTIVE_CREATION_OPTIONS,
+  WF_PROACTIVE_PLANNER_OPTIONS,
+  WF_PROACTIVE_PERMISSIONS_OPTIONS,
+  WF_PROACTIVE_STATES,
+  REACTIVE_WORKFLOW_POPUP_TEXT,
+  PROACTIVE_WORKFLOW_POPUP_TEXT
 } from './constants';
 import { generateImplementationBrief } from './services/geminiService';
 import { generateAndDownloadExcel } from './services/excelService';
@@ -58,6 +80,9 @@ const App: React.FC = () => {
   const [step, setStep] = useState<number>(1);
   const [showObjectivesModal, setShowObjectivesModal] = useState(false);
   const [showCAModal, setShowCAModal] = useState(false);
+  const [showAuditModal, setShowAuditModal] = useState(false);
+  const [showReactiveModal, setShowReactiveModal] = useState(false);
+  const [showProactiveModal, setShowProactiveModal] = useState(false);
 
   const [formData, setFormData] = useState<OnboardingData>({
     // Step 1
@@ -119,7 +144,55 @@ const App: React.FC = () => {
     enableStandardHourlyCost: 'No',
     caEnableAutomation: 'No',
     caCustomFields: '',
-    caWorkflow: CorrectiveWorkflow.SAME
+    caWorkflow: CorrectiveWorkflow.SAME,
+
+    // Step 5
+    templateTypes: [],
+    templateInclusions: [],
+    importExistingModels: 'No',
+    importExistingModelsDetails: '',
+    templateMandatoryFields: '',
+    templateUsageTriggers: [],
+    templatePermissions: '',
+    templateWorkflowSpecific: 'No',
+    auditTypes: [],
+    auditLinkedTo: [],
+    auditFrequency: [],
+    auditExecutors: '',
+    importPastAuditData: 'No',
+    importChecklists: 'No',
+
+    // Step 6
+    wfReactiveOpeners: [],
+    wfReactiveAutoCreation: [],
+    wfReactivePhases: [],
+    wfReactiveApproval: 'No',
+    wfReactiveAssignmentType: 'Manuale',
+    wfReactiveAssignerRoles: '',
+    wfReactiveAssignTo: [],
+    wfReactiveAttachments: 'No',
+    wfReactiveClosureMandatory: [],
+    wfReactiveRCA: 'No',
+    wfReactiveValidation: 'No',
+    wfReactiveClientApproval: 'No',
+    wfReactiveNotifications: [],
+    wfReactiveReport: 'No',
+    wfReactiveReportDetails: '',
+    wfReactiveVisibility: '',
+    wfReactiveRestrictions: 'No',
+    wfReactiveRestrictionsDetails: '',
+    wfProactiveCreation: [],
+    wfProactivePlanners: [],
+    wfProactiveReminders: 'No',
+    wfProactiveTeam: 'No',
+    wfProactiveChecklist: 'No',
+    wfProactiveAttachments: 'No',
+    wfProactiveMandatoryFields: '',
+    wfProactiveClosureInfo: '',
+    wfProactiveValidation: 'No',
+    wfProactiveValidatorRole: '',
+    wfProactivePermissions: [],
+    wfProactivePhases: []
   });
 
   const [processing, setProcessing] = useState<ProcessingState>({ status: 'idle' });
@@ -192,6 +265,30 @@ const App: React.FC = () => {
     });
   };
 
+  // Generic toggle for Array Fields
+  const toggleArrayField = (field: keyof OnboardingData, value: string) => {
+    setFormData(prev => {
+      const currentArray = prev[field] as string[];
+      const exists = currentArray.includes(value);
+      return {
+        ...prev,
+        [field]: exists ? currentArray.filter(i => i !== value) : [...currentArray, value]
+      };
+    });
+  };
+
+  // Special toggle for ordered phases (Step 6)
+  const toggleOrderedPhase = (field: keyof OnboardingData, value: string) => {
+    setFormData(prev => {
+      const currentArray = prev[field] as string[];
+      const exists = currentArray.includes(value);
+      return {
+        ...prev,
+        [field]: exists ? currentArray.filter(i => i !== value) : [...currentArray, value]
+      };
+    });
+  };
+
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
@@ -251,6 +348,18 @@ const App: React.FC = () => {
     return newErrors;
   };
 
+  const getStep5Errors = () => {
+    const newErrors: Partial<Record<keyof OnboardingData, string>> = {};
+    return newErrors;
+  };
+  
+  const getStep6Errors = () => {
+    const newErrors: Partial<Record<keyof OnboardingData, string>> = {};
+    if (formData.wfReactivePhases.length === 0) newErrors.wfReactivePhases = "Seleziona almeno una fase.";
+    if (formData.wfProactivePhases.length === 0) newErrors.wfProactivePhases = "Seleziona almeno una fase.";
+    return newErrors;
+  };
+
   // --- Navigation ---
 
   const handleStepClick = (targetStep: number) => {
@@ -264,6 +373,9 @@ const App: React.FC = () => {
     if (step === 1) stepErrors = getStep1Errors();
     if (step === 2) stepErrors = getStep2Errors();
     if (step === 3) stepErrors = getStep3Errors();
+    if (step === 4) stepErrors = getStep4Errors();
+    // Step 5 has no blockers
+    if (step === 6) stepErrors = getStep6Errors(); // Not actually called on Next, only Submit
 
     if (Object.keys(stepErrors).length > 0) {
       setErrors(stepErrors);
@@ -286,11 +398,13 @@ const App: React.FC = () => {
     const step2Errors = getStep2Errors();
     const step3Errors = getStep3Errors();
     const step4Errors = getStep4Errors();
-    const allErrors = { ...step1Errors, ...step2Errors, ...step3Errors, ...step4Errors };
+    const step6Errors = getStep6Errors();
+
+    const allErrors = { ...step1Errors, ...step2Errors, ...step3Errors, ...step4Errors, ...step6Errors };
 
     if (Object.keys(allErrors).length > 0) {
       setErrors(allErrors);
-      alert("Attenzione: Ci sono campi obbligatori incompleti. Verifica i dati inseriti.");
+      alert("Attenzione: Ci sono campi obbligatori incompleti. Verifica i dati inseriti (es. seleziona almeno una fase per il workflow).");
       return;
     }
 
@@ -420,7 +534,8 @@ const App: React.FC = () => {
       </div>
     </div>
   );
-
+  
+  // (Steps 2, 3, 4, 5 omitted from this snippet for brevity, assuming they are kept as provided in the context, but I will include them fully in the XML output to ensure full file integrity)
   const renderStep2 = () => (
     <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
       
@@ -1005,6 +1120,497 @@ const App: React.FC = () => {
 
       </section>
 
+      <div className="pt-6 flex justify-end">
+        <button type="button" onClick={handleNext} className="flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transition-all">
+          Prosegui: Template <ArrowRight size={20} />
+        </button>
+      </div>
+    </div>
+  );
+
+  const renderStep5 = () => (
+    <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
+      {/* Intro */}
+      <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 flex flex-col md:flex-row gap-4 items-start justify-between">
+         <div className="flex gap-4">
+            <div className="bg-emerald-100 p-2 rounded-lg text-emerald-600 h-fit">
+              <ClipboardCheck size={24} />
+            </div>
+            <div>
+              <h3 className="font-bold text-emerald-900">Template & Audit</h3>
+              <p className="text-sm text-emerald-800 mt-1 max-w-lg">
+                Attivazione moduli per gestione modelli attività, assegnazioni standard e revisioni sistematiche (Audit).
+              </p>
+            </div>
+         </div>
+         <button 
+           type="button"
+           onClick={() => setShowAuditModal(true)}
+           className="flex items-center gap-2 bg-white text-emerald-600 px-4 py-2 rounded-lg text-sm font-semibold border border-emerald-200 hover:bg-emerald-50 transition-colors shadow-sm whitespace-nowrap"
+         >
+           <Info size={16} />
+           Info Audit
+         </button>
+      </div>
+
+      {/* SECTION 1: TEMPLATES */}
+      <section className="space-y-6">
+        <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+          <FileCheck className="text-emerald-600" size={24} />
+          <h2 className="text-xl font-bold text-slate-800">Configurazione Template</h2>
+        </div>
+
+        <InputGroup label="Tipologie di Template" description="Seleziona una o più opzioni">
+           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+             {TEMPLATE_TYPE_OPTIONS.map(opt => (
+               <label key={opt} className={`flex items-center p-3 border rounded-lg cursor-pointer transition-all ${formData.templateTypes.includes(opt) ? 'bg-emerald-50 border-emerald-500' : 'hover:bg-slate-50 border-slate-200'}`}>
+                 <input type="checkbox" className="hidden" checked={formData.templateTypes.includes(opt)} onChange={() => toggleArrayField('templateTypes', opt)} />
+                 <div className={`w-4 h-4 rounded border flex items-center justify-center mr-2 ${formData.templateTypes.includes(opt) ? 'bg-emerald-500 border-emerald-500' : 'border-slate-300'}`}>
+                   {formData.templateTypes.includes(opt) && <CheckCircle2 size={12} className="text-white" />}
+                 </div>
+                 <span className="text-sm font-medium text-slate-700">{opt}</span>
+               </label>
+             ))}
+           </div>
+        </InputGroup>
+
+        <InputGroup label="Contenuto del Template" description="Cosa deve essere incluso nel modello?">
+           <div className="flex flex-wrap gap-2">
+             {TEMPLATE_INCLUSION_OPTIONS.map(opt => (
+               <label key={opt} className={`px-4 py-2 rounded-full border cursor-pointer text-sm transition-colors ${formData.templateInclusions.includes(opt) ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-white text-slate-600 border-slate-300 hover:border-emerald-300'}`}>
+                 <input type="checkbox" className="hidden" checked={formData.templateInclusions.includes(opt)} onChange={() => toggleArrayField('templateInclusions', opt)} />
+                 {opt}
+               </label>
+             ))}
+           </div>
+        </InputGroup>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+           <InputGroup label="Importazione Modelli Esistenti?">
+             <div className="space-y-3">
+               <div className="flex gap-4">
+                   {['Si', 'No'].map(opt => (
+                     <label key={opt} className="flex items-center cursor-pointer">
+                       <input type="radio" name="importModels" checked={formData.importExistingModels === opt} onChange={() => setFormData({...formData, importExistingModels: opt})} className="text-emerald-600" />
+                       <span className="ml-2 text-sm text-slate-700">{opt}</span>
+                     </label>
+                   ))}
+               </div>
+               {formData.importExistingModels === 'Si' && (
+                  <input type="text" placeholder="Descrivi formati (Word, Excel...)" value={formData.importExistingModelsDetails} onChange={(e) => setFormData({...formData, importExistingModelsDetails: e.target.value})} className="w-full p-2 border border-slate-300 rounded text-sm" />
+               )}
+             </div>
+           </InputGroup>
+
+           <InputGroup label="Campi Obbligatori">
+              <input type="text" placeholder="Es. Firma, Data, Esito..." value={formData.templateMandatoryFields} onChange={(e) => setFormData({...formData, templateMandatoryFields: e.target.value})} className="w-full p-3 border border-slate-300 rounded-lg text-sm" />
+           </InputGroup>
+        </div>
+
+        <InputGroup label="Trigger Utilizzo">
+           <div className="flex flex-wrap gap-2">
+             {TEMPLATE_TRIGGER_OPTIONS.map(opt => (
+               <label key={opt} className={`px-4 py-2 rounded-full border cursor-pointer text-sm transition-colors ${formData.templateUsageTriggers.includes(opt) ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : 'bg-white text-slate-600 border-slate-300'}`}>
+                 <input type="checkbox" className="hidden" checked={formData.templateUsageTriggers.includes(opt)} onChange={() => toggleArrayField('templateUsageTriggers', opt)} />
+                 <span className="flex items-center gap-1">
+                   {formData.templateUsageTriggers.includes(opt) && <CheckCircle2 size={12} />}
+                   {opt}
+                 </span>
+               </label>
+             ))}
+           </div>
+        </InputGroup>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+           <InputGroup label="Permessi (Creazione/Edit)">
+              <input type="text" placeholder="Ruoli autorizzati..." value={formData.templatePermissions} onChange={(e) => setFormData({...formData, templatePermissions: e.target.value})} className="w-full p-3 border border-slate-300 rounded-lg text-sm" />
+           </InputGroup>
+           <InputGroup label="Workflow Specifico?">
+             <div className="flex gap-4 mt-2">
+                 {['Si', 'No'].map(opt => (
+                   <label key={opt} className="flex items-center cursor-pointer">
+                     <input type="radio" name="tplWorkflow" checked={formData.templateWorkflowSpecific === opt} onChange={() => setFormData({...formData, templateWorkflowSpecific: opt})} className="text-emerald-600" />
+                     <span className="ml-2 text-sm text-slate-700">{opt}</span>
+                   </label>
+                 ))}
+             </div>
+           </InputGroup>
+        </div>
+      </section>
+
+      {/* SECTION 2: AUDIT */}
+      <section className="space-y-6 pt-6 border-t border-slate-200">
+        <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+          <ClipboardCheck className="text-emerald-600" size={24} />
+          <h2 className="text-xl font-bold text-slate-800">Configurazione Audit</h2>
+        </div>
+
+        <InputGroup label="Tipologie Audit Attuali">
+           <div className="flex flex-wrap gap-2">
+             {AUDIT_TYPE_OPTIONS.map(opt => (
+               <label key={opt} className={`px-4 py-2 rounded-lg border cursor-pointer text-sm transition-colors ${formData.auditTypes.includes(opt) ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-slate-600 border-slate-300 hover:border-emerald-400'}`}>
+                 <input type="checkbox" className="hidden" checked={formData.auditTypes.includes(opt)} onChange={() => toggleArrayField('auditTypes', opt)} />
+                 {opt}
+               </label>
+             ))}
+           </div>
+        </InputGroup>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <InputGroup label="Scope (Legato a)">
+            <div className="flex flex-col gap-2">
+              {AUDIT_LINK_OPTIONS.map(opt => (
+                 <label key={opt} className="flex items-center cursor-pointer">
+                   <input type="checkbox" checked={formData.auditLinkedTo.includes(opt)} onChange={() => toggleArrayField('auditLinkedTo', opt)} className="text-emerald-600 rounded border-slate-300 focus:ring-emerald-500" />
+                   <span className="ml-2 text-sm text-slate-700">{opt}</span>
+                 </label>
+              ))}
+            </div>
+          </InputGroup>
+          <InputGroup label="Frequenza">
+            <div className="flex flex-col gap-2">
+              {AUDIT_FREQUENCY_OPTIONS.map(opt => (
+                 <label key={opt} className="flex items-center cursor-pointer">
+                   <input type="checkbox" checked={formData.auditFrequency.includes(opt)} onChange={() => toggleArrayField('auditFrequency', opt)} className="text-emerald-600 rounded border-slate-300 focus:ring-emerald-500" />
+                   <span className="ml-2 text-sm text-slate-700">{opt}</span>
+                 </label>
+              ))}
+            </div>
+          </InputGroup>
+        </div>
+
+        <InputGroup label="Esecutori / Ruoli">
+           <input type="text" placeholder="Chi esegue gli audit?" value={formData.auditExecutors} onChange={(e) => setFormData({...formData, auditExecutors: e.target.value})} className="w-full p-3 border border-slate-300 rounded-lg text-sm" />
+        </InputGroup>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+           <div className="p-3 border rounded-lg bg-slate-50">
+             <span className="block text-xs font-bold text-slate-500 mb-2">Import Dati Audit Pregressi?</span>
+             <div className="flex gap-3">
+               {['Si', 'No'].map(opt => (
+                 <label key={opt} className="inline-flex items-center"><input type="radio" name="pastAudit" checked={formData.importPastAuditData === opt} onChange={() => setFormData({...formData, importPastAuditData: opt})} className="text-emerald-600" /><span className="ml-1 text-sm">{opt}</span></label>
+               ))}
+             </div>
+           </div>
+           <div className="p-3 border rounded-lg bg-slate-50">
+             <span className="block text-xs font-bold text-slate-500 mb-2">Import Checklist Esistenti?</span>
+             <div className="flex gap-3">
+               {['Si', 'No'].map(opt => (
+                 <label key={opt} className="inline-flex items-center"><input type="radio" name="chkImport" checked={formData.importChecklists === opt} onChange={() => setFormData({...formData, importChecklists: opt})} className="text-emerald-600" /><span className="ml-1 text-sm">{opt}</span></label>
+               ))}
+             </div>
+           </div>
+        </div>
+
+      </section>
+
+      <div className="pt-6 flex justify-end">
+        <button type="button" onClick={handleNext} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transition-all">
+          Prosegui: Workflow <ArrowRight size={20} />
+        </button>
+      </div>
+    </div>
+  );
+
+  const renderStep6 = () => (
+    <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
+      {/* Intro */}
+      <div className="bg-violet-50 border border-violet-100 rounded-xl p-4 flex flex-col md:flex-row gap-4 items-start justify-between">
+         <div className="flex gap-4">
+            <div className="bg-violet-100 p-2 rounded-lg text-violet-600 h-fit">
+              <GitPullRequest size={24} />
+            </div>
+            <div>
+              <h3 className="font-bold text-violet-900">Workflow Design</h3>
+              <p className="text-sm text-violet-800 mt-1 max-w-lg">
+                Mappatura dettagliata dei flussi reattivi e proattivi per la configurazione del motore di workflow.
+              </p>
+            </div>
+         </div>
+      </div>
+
+      {/* REACTIVE WORKFLOW */}
+      <section className="space-y-6">
+        <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+           <div className="flex items-center gap-2">
+             <AlertTriangle className="text-violet-600" size={24} />
+             <h2 className="text-xl font-bold text-slate-800">Workflow Standard - Manutenzione Reattiva</h2>
+           </div>
+           <button type="button" onClick={() => setShowReactiveModal(true)} className="text-violet-600 hover:text-violet-700 text-sm font-medium flex items-center gap-1"><Info size={16} /> Info</button>
+        </div>
+
+        <InputGroup label="Chi può aprire un OdL Reattivo?">
+           <div className="flex flex-wrap gap-2">
+             {WF_OPENER_OPTIONS.map(opt => (
+               <label key={opt} className={`px-4 py-2 rounded-full border cursor-pointer text-sm transition-colors ${formData.wfReactiveOpeners.includes(opt) ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-slate-600 border-slate-300 hover:border-violet-300'}`}>
+                 <input type="checkbox" className="hidden" checked={formData.wfReactiveOpeners.includes(opt)} onChange={() => toggleArrayField('wfReactiveOpeners', opt)} />
+                 {opt}
+               </label>
+             ))}
+           </div>
+        </InputGroup>
+
+        <InputGroup label="Automatismi Apertura Ticket">
+           <div className="flex flex-wrap gap-2">
+             {WF_AUTO_CREATION_OPTIONS.map(opt => (
+               <label key={opt} className={`px-4 py-2 rounded-full border cursor-pointer text-sm transition-colors ${formData.wfReactiveAutoCreation.includes(opt) ? 'bg-violet-100 text-violet-800 border-violet-200' : 'bg-white text-slate-600 border-slate-300'}`}>
+                 <input type="checkbox" className="hidden" checked={formData.wfReactiveAutoCreation.includes(opt)} onChange={() => toggleArrayField('wfReactiveAutoCreation', opt)} />
+                 <span className="flex items-center gap-1">{formData.wfReactiveAutoCreation.includes(opt) && <CheckCircle2 size={12} />}{opt}</span>
+               </label>
+             ))}
+           </div>
+        </InputGroup>
+
+        <InputGroup label="Fasi Operative (Seleziona in ordine)" description="Clicca sugli stati per definire la sequenza" error={errors.wfReactivePhases}>
+           <div className="flex flex-wrap gap-3">
+             {WF_REACTIVE_STATES.map(opt => {
+               const idx = formData.wfReactivePhases.indexOf(opt);
+               const isSelected = idx >= 0;
+               return (
+                 <button 
+                   key={opt} 
+                   type="button"
+                   onClick={() => toggleOrderedPhase('wfReactivePhases', opt)}
+                   className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-all ${isSelected ? 'bg-violet-600 text-white border-violet-600 shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300'}`}
+                 >
+                   {isSelected && <span className="bg-white text-violet-600 text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">{idx + 1}</span>}
+                   {opt}
+                 </button>
+               );
+             })}
+           </div>
+           {formData.wfReactivePhases.length > 0 && (
+             <div className="mt-2 text-sm text-slate-500 bg-slate-50 p-2 rounded">
+               Sequenza: {formData.wfReactivePhases.join(' → ')}
+             </div>
+           )}
+        </InputGroup>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+           <InputGroup label="Approvazione Tecnica/Economica?">
+             <div className="flex gap-4">
+                 {['Si', 'No'].map(opt => (
+                   <label key={`app-${opt}`} className="flex items-center cursor-pointer">
+                     <input type="radio" name="wfReactApproval" checked={formData.wfReactiveApproval === opt} onChange={() => setFormData({...formData, wfReactiveApproval: opt})} className="text-violet-600" />
+                     <span className="ml-2 text-sm">{opt}</span>
+                   </label>
+                 ))}
+             </div>
+           </InputGroup>
+           <InputGroup label="Tipo Assegnazione">
+             <div className="space-y-2">
+                <div className="flex gap-4">
+                   {['Manuale', 'Automatico'].map(opt => (
+                     <label key={`assign-${opt}`} className="flex items-center cursor-pointer">
+                       <input type="radio" name="wfReactAssign" checked={formData.wfReactiveAssignmentType === opt} onChange={() => setFormData({...formData, wfReactiveAssignmentType: opt})} className="text-violet-600" />
+                       <span className="ml-2 text-sm">{opt}</span>
+                     </label>
+                   ))}
+                </div>
+                <input type="text" placeholder="Ruoli abilitati all'assegnazione..." value={formData.wfReactiveAssignerRoles} onChange={(e) => setFormData({...formData, wfReactiveAssignerRoles: e.target.value})} className="w-full p-2 border border-slate-300 rounded text-sm" />
+             </div>
+           </InputGroup>
+        </div>
+
+        <InputGroup label="Assegnazione a">
+           <div className="flex gap-4">
+             {WF_ASSIGN_TO_OPTIONS.map(opt => (
+               <label key={opt} className="flex items-center cursor-pointer">
+                 <input type="checkbox" className="rounded border-slate-300 text-violet-600" checked={formData.wfReactiveAssignTo.includes(opt)} onChange={() => toggleArrayField('wfReactiveAssignTo', opt)} />
+                 <span className="ml-2 text-sm text-slate-700">{opt}</span>
+               </label>
+             ))}
+           </div>
+        </InputGroup>
+
+        <InputGroup label="Obbligatori per Chiusura">
+           <div className="flex flex-wrap gap-2">
+             {WF_CLOSURE_OPTIONS.map(opt => (
+               <label key={opt} className={`px-4 py-2 rounded-full border cursor-pointer text-sm transition-colors ${formData.wfReactiveClosureMandatory.includes(opt) ? 'bg-violet-100 text-violet-800 border-violet-200' : 'bg-white text-slate-600 border-slate-300'}`}>
+                 <input type="checkbox" className="hidden" checked={formData.wfReactiveClosureMandatory.includes(opt)} onChange={() => toggleArrayField('wfReactiveClosureMandatory', opt)} />
+                 {opt}
+               </label>
+             ))}
+           </div>
+        </InputGroup>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+           {['Allegati Obbligatori', 'RCA Obbligatoria', 'Approvazione Cliente'].map((label, idx) => {
+             const key = idx === 0 ? 'wfReactiveAttachments' : idx === 1 ? 'wfReactiveRCA' : 'wfReactiveClientApproval';
+             return (
+               <div key={key} className="p-3 border rounded-lg bg-slate-50">
+                 <span className="block text-xs font-bold text-slate-500 mb-2">{label}?</span>
+                 <div className="flex gap-3">
+                   {['Si', 'No'].map(opt => (
+                     <label key={opt} className="inline-flex items-center">
+                       <input 
+                         type="radio" 
+                         name={key} 
+                         checked={(formData as any)[key] === opt} 
+                         onChange={() => setFormData({...formData, [key]: opt})} 
+                         className="text-violet-600" 
+                       />
+                       <span className="ml-1 text-sm">{opt}</span>
+                     </label>
+                   ))}
+                 </div>
+               </div>
+             );
+           })}
+        </div>
+
+        <InputGroup label="Notifiche (Fasi)">
+           <div className="flex flex-wrap gap-2">
+             {WF_NOTIFICATIONS_OPTIONS.map(opt => (
+               <label key={opt} className={`px-4 py-2 rounded-lg border cursor-pointer text-sm transition-colors ${formData.wfReactiveNotifications.includes(opt) ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-slate-600 border-slate-300'}`}>
+                 <input type="checkbox" className="hidden" checked={formData.wfReactiveNotifications.includes(opt)} onChange={() => toggleArrayField('wfReactiveNotifications', opt)} />
+                 {opt}
+               </label>
+             ))}
+           </div>
+        </InputGroup>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+           <InputGroup label="Report Automatici?">
+             <div className="space-y-2">
+               <div className="flex gap-4">
+                   {['Si', 'No'].map(opt => (
+                     <label key={`rep-${opt}`} className="flex items-center cursor-pointer">
+                       <input type="radio" name="wfReactReport" checked={formData.wfReactiveReport === opt} onChange={() => setFormData({...formData, wfReactiveReport: opt})} className="text-violet-600" />
+                       <span className="ml-2 text-sm">{opt}</span>
+                     </label>
+                   ))}
+               </div>
+               {formData.wfReactiveReport === 'Si' && (
+                 <input type="text" placeholder="Frequenza e destinatari..." value={formData.wfReactiveReportDetails} onChange={(e) => setFormData({...formData, wfReactiveReportDetails: e.target.value})} className="w-full p-2 border border-slate-300 rounded text-sm" />
+               )}
+             </div>
+           </InputGroup>
+           <InputGroup label="Restrizioni Visibilità">
+              <input type="text" placeholder="Quali ruoli vedono cosa?" value={formData.wfReactiveVisibility} onChange={(e) => setFormData({...formData, wfReactiveVisibility: e.target.value})} className="w-full p-3 border border-slate-300 rounded-lg text-sm" />
+           </InputGroup>
+        </div>
+      </section>
+
+      {/* PROACTIVE WORKFLOW */}
+      <section className="space-y-6 pt-6 border-t border-slate-200">
+        <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+           <div className="flex items-center gap-2">
+             <Wrench className="text-violet-600" size={24} />
+             <h2 className="text-xl font-bold text-slate-800">Workflow Standard - Manutenzione Proattiva</h2>
+           </div>
+           <button type="button" onClick={() => setShowProactiveModal(true)} className="text-violet-600 hover:text-violet-700 text-sm font-medium flex items-center gap-1"><Info size={16} /> Info</button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+           <InputGroup label="Creazione Attività">
+             <div className="flex flex-wrap gap-2">
+               {WF_PROACTIVE_CREATION_OPTIONS.map(opt => (
+                 <label key={opt} className={`px-3 py-1 rounded border cursor-pointer text-sm transition-colors ${formData.wfProactiveCreation.includes(opt) ? 'bg-violet-100 border-violet-300 text-violet-800' : 'bg-white text-slate-600 border-slate-300'}`}>
+                   <input type="checkbox" className="hidden" checked={formData.wfProactiveCreation.includes(opt)} onChange={() => toggleArrayField('wfProactiveCreation', opt)} />
+                   {opt}
+                 </label>
+               ))}
+             </div>
+           </InputGroup>
+           <InputGroup label="Chi Pianifica?">
+             <div className="flex flex-wrap gap-2">
+               {WF_PROACTIVE_PLANNER_OPTIONS.map(opt => (
+                 <label key={opt} className={`px-3 py-1 rounded border cursor-pointer text-sm transition-colors ${formData.wfProactivePlanners.includes(opt) ? 'bg-violet-100 border-violet-300 text-violet-800' : 'bg-white text-slate-600 border-slate-300'}`}>
+                   <input type="checkbox" className="hidden" checked={formData.wfProactivePlanners.includes(opt)} onChange={() => toggleArrayField('wfProactivePlanners', opt)} />
+                   {opt}
+                 </label>
+               ))}
+             </div>
+           </InputGroup>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+           {['Promemoria', 'Team Dedicato', 'Checklist', 'Allegati'].map((label, idx) => {
+             const key = idx === 0 ? 'wfProactiveReminders' : idx === 1 ? 'wfProactiveTeam' : idx === 2 ? 'wfProactiveChecklist' : 'wfProactiveAttachments';
+             return (
+               <div key={key} className="p-3 border rounded-lg bg-slate-50">
+                 <span className="block text-xs font-bold text-slate-500 mb-2">{label}?</span>
+                 <div className="flex gap-2">
+                   {['Si', 'No'].map(opt => (
+                     <label key={opt} className="inline-flex items-center">
+                       <input 
+                         type="radio" 
+                         name={key} 
+                         checked={(formData as any)[key] === opt} 
+                         onChange={() => setFormData({...formData, [key]: opt})} 
+                         className="text-violet-600" 
+                       />
+                       <span className="ml-1 text-sm">{opt}</span>
+                     </label>
+                   ))}
+                 </div>
+               </div>
+             );
+           })}
+        </div>
+
+        <InputGroup label="Info Chiusura e Campi">
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <input type="text" placeholder="Campi obbligatori..." value={formData.wfProactiveMandatoryFields} onChange={(e) => setFormData({...formData, wfProactiveMandatoryFields: e.target.value})} className="w-full p-3 border border-slate-300 rounded-lg text-sm" />
+              <input type="text" placeholder="Info da registrare a chiusura..." value={formData.wfProactiveClosureInfo} onChange={(e) => setFormData({...formData, wfProactiveClosureInfo: e.target.value})} className="w-full p-3 border border-slate-300 rounded-lg text-sm" />
+           </div>
+        </InputGroup>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+           <InputGroup label="Validazione Finale">
+              <div className="space-y-2">
+                 <div className="flex gap-4">
+                   {['Si', 'No'].map(opt => (
+                     <label key={`val-${opt}`} className="flex items-center cursor-pointer">
+                       <input type="radio" name="wfProVal" checked={formData.wfProactiveValidation === opt} onChange={() => setFormData({...formData, wfProactiveValidation: opt})} className="text-violet-600" />
+                       <span className="ml-2 text-sm">{opt}</span>
+                     </label>
+                   ))}
+                 </div>
+                 {formData.wfProactiveValidation === 'Si' && (
+                   <input type="text" placeholder="Ruolo validatore..." value={formData.wfProactiveValidatorRole} onChange={(e) => setFormData({...formData, wfProactiveValidatorRole: e.target.value})} className="w-full p-2 border border-slate-300 rounded text-sm" />
+                 )}
+              </div>
+           </InputGroup>
+           <InputGroup label="Permessi (Modifica/Pianifica)">
+             <div className="flex flex-wrap gap-2">
+               {WF_PROACTIVE_PERMISSIONS_OPTIONS.map(opt => (
+                 <label key={opt} className={`px-3 py-1 rounded border cursor-pointer text-sm transition-colors ${formData.wfProactivePermissions.includes(opt) ? 'bg-violet-100 border-violet-300 text-violet-800' : 'bg-white text-slate-600 border-slate-300'}`}>
+                   <input type="checkbox" className="hidden" checked={formData.wfProactivePermissions.includes(opt)} onChange={() => toggleArrayField('wfProactivePermissions', opt)} />
+                   {opt}
+                 </label>
+               ))}
+             </div>
+           </InputGroup>
+        </div>
+
+        <InputGroup label="Fasi Operative (Seleziona in ordine)" error={errors.wfProactivePhases}>
+           <div className="flex flex-wrap gap-3">
+             {WF_PROACTIVE_STATES.map(opt => {
+               const idx = formData.wfProactivePhases.indexOf(opt);
+               const isSelected = idx >= 0;
+               return (
+                 <button 
+                   key={opt} 
+                   type="button"
+                   onClick={() => toggleOrderedPhase('wfProactivePhases', opt)}
+                   className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-all ${isSelected ? 'bg-violet-600 text-white border-violet-600 shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300'}`}
+                 >
+                   {isSelected && <span className="bg-white text-violet-600 text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">{idx + 1}</span>}
+                   {opt}
+                 </button>
+               );
+             })}
+           </div>
+           {formData.wfProactivePhases.length > 0 && (
+             <div className="mt-2 text-sm text-slate-500 bg-slate-50 p-2 rounded">
+               Sequenza: {formData.wfProactivePhases.join(' → ')}
+             </div>
+           )}
+        </InputGroup>
+      </section>
+
       {/* Navigation Actions */}
       <div className="pt-6 border-t border-slate-200 flex justify-between items-center">
         <button type="button" onClick={handleBack} className="flex items-center gap-2 text-slate-600 hover:text-slate-800 font-medium px-4 py-2">
@@ -1098,10 +1704,20 @@ const App: React.FC = () => {
     );
   }
 
+  // Helper for timeline circles
+  const getCircleClass = (s: number, current: number, color: string) => {
+     if (current === s) return `border-${color} bg-${color.replace('text-', 'bg-').replace('600', '50')} text-${color} font-bold`;
+     if (current > s) return `border-${color} bg-${color} text-white`;
+     return 'border-slate-300 text-slate-500';
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 font-sans">
       <Modal isOpen={showObjectivesModal} onClose={() => setShowObjectivesModal(false)} title="Obiettivi Eventi" content={OBJECTIVES_POPUP_TEXT} />
       <Modal isOpen={showCAModal} onClose={() => setShowCAModal(false)} title="Azioni Correttive" content={CA_POPUP_TEXT} />
+      <Modal isOpen={showAuditModal} onClose={() => setShowAuditModal(false)} title="Obiettivi Audit" content={AUDIT_OBJECTIVES_POPUP_TEXT} />
+      <Modal isOpen={showReactiveModal} onClose={() => setShowReactiveModal(false)} title="Manutenzione Reattiva" content={REACTIVE_WORKFLOW_POPUP_TEXT} />
+      <Modal isOpen={showProactiveModal} onClose={() => setShowProactiveModal(false)} title="Manutenzione Proattiva" content={PROACTIVE_WORKFLOW_POPUP_TEXT} />
 
       <div className="max-w-4xl mx-auto">
         
@@ -1111,12 +1727,12 @@ const App: React.FC = () => {
             Mainsim <span className="text-blue-600">Onboarding</span>
           </h1>
           <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-            Wizard di configurazione: Istanza, Asset, Wizard & Eventi
+            Wizard di configurazione: Istanza, Asset, Wizard, Eventi & Audit
           </p>
         </div>
 
         {/* Step Indicator (Interactive) */}
-        <div className="mb-8 flex justify-center items-center gap-4">
+        <div className="mb-8 flex justify-center items-center gap-2 sm:gap-4 overflow-x-auto py-2">
            {/* Step 1 */}
            <button type="button" onClick={() => handleStepClick(1)} className={`flex items-center gap-2 focus:outline-none transition-all group ${step === 1 ? 'opacity-100' : 'opacity-70 hover:opacity-100'}`}>
              <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-colors ${step === 1 ? 'border-blue-600 bg-blue-50 text-blue-600 font-bold' : (step > 1 ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-300 text-slate-500')}`}>
@@ -1124,8 +1740,7 @@ const App: React.FC = () => {
              </div>
              <span className={`text-sm font-medium hidden sm:inline ${step === 1 ? 'text-blue-600' : 'text-slate-500 group-hover:text-blue-600'}`}>Istanza</span>
            </button>
-
-           <div className="w-6 sm:w-12 h-1 bg-slate-200 relative rounded-full overflow-hidden">
+           <div className={`h-1 bg-slate-200 relative rounded-full overflow-hidden w-6 sm:w-8`}>
              <div className={`absolute left-0 top-0 h-full bg-blue-600 transition-all duration-500 ease-out ${step > 1 ? 'w-full' : 'w-0'}`}></div>
            </div>
 
@@ -1136,8 +1751,7 @@ const App: React.FC = () => {
              </div>
              <span className={`text-sm font-medium hidden sm:inline ${step === 2 ? 'text-indigo-600' : 'text-slate-500 group-hover:text-indigo-600'}`}>Asset</span>
            </button>
-
-           <div className="w-6 sm:w-12 h-1 bg-slate-200 relative rounded-full overflow-hidden">
+           <div className={`h-1 bg-slate-200 relative rounded-full overflow-hidden w-6 sm:w-8`}>
              <div className={`absolute left-0 top-0 h-full bg-indigo-600 transition-all duration-500 ease-out ${step > 2 ? 'w-full' : 'w-0'}`}></div>
            </div>
 
@@ -1148,17 +1762,38 @@ const App: React.FC = () => {
              </div>
              <span className={`text-sm font-medium hidden sm:inline ${step === 3 ? 'text-yellow-600' : 'text-slate-500 group-hover:text-yellow-600'}`}>Wizard</span>
            </button>
-
-           <div className="w-6 sm:w-12 h-1 bg-slate-200 relative rounded-full overflow-hidden">
+           <div className={`h-1 bg-slate-200 relative rounded-full overflow-hidden w-6 sm:w-8`}>
              <div className={`absolute left-0 top-0 h-full bg-yellow-500 transition-all duration-500 ease-out ${step > 3 ? 'w-full' : 'w-0'}`}></div>
            </div>
 
            {/* Step 4 */}
            <button type="button" onClick={() => handleStepClick(4)} className={`flex items-center gap-2 focus:outline-none transition-all group ${step === 4 ? 'opacity-100' : 'opacity-70 hover:opacity-100'}`}>
-             <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-colors ${step === 4 ? 'border-rose-600 bg-rose-50 text-rose-600 font-bold' : 'border-slate-300 text-slate-500'}`}>
-               4
+             <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-colors ${step === 4 ? 'border-rose-600 bg-rose-50 text-rose-600 font-bold' : (step > 4 ? 'border-rose-600 bg-rose-600 text-white' : 'border-slate-300 text-slate-500')}`}>
+               {step > 4 ? <CheckCircle2 size={16} /> : 4}
              </div>
              <span className={`text-sm font-medium hidden sm:inline ${step === 4 ? 'text-rose-600' : 'text-slate-500 group-hover:text-rose-600'}`}>Eventi</span>
+           </button>
+           <div className={`h-1 bg-slate-200 relative rounded-full overflow-hidden w-6 sm:w-8`}>
+             <div className={`absolute left-0 top-0 h-full bg-rose-600 transition-all duration-500 ease-out ${step > 4 ? 'w-full' : 'w-0'}`}></div>
+           </div>
+
+           {/* Step 5 */}
+           <button type="button" onClick={() => handleStepClick(5)} className={`flex items-center gap-2 focus:outline-none transition-all group ${step === 5 ? 'opacity-100' : 'opacity-70 hover:opacity-100'}`}>
+             <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-colors ${step === 5 ? 'border-emerald-600 bg-emerald-50 text-emerald-600 font-bold' : (step > 5 ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-slate-300 text-slate-500')}`}>
+               {step > 5 ? <CheckCircle2 size={16} /> : 5}
+             </div>
+             <span className={`text-sm font-medium hidden sm:inline ${step === 5 ? 'text-emerald-600' : 'text-slate-500 group-hover:text-emerald-600'}`}>Audit</span>
+           </button>
+           <div className={`h-1 bg-slate-200 relative rounded-full overflow-hidden w-6 sm:w-8`}>
+             <div className={`absolute left-0 top-0 h-full bg-emerald-600 transition-all duration-500 ease-out ${step > 5 ? 'w-full' : 'w-0'}`}></div>
+           </div>
+
+           {/* Step 6 */}
+           <button type="button" onClick={() => handleStepClick(6)} className={`flex items-center gap-2 focus:outline-none transition-all group ${step === 6 ? 'opacity-100' : 'opacity-70 hover:opacity-100'}`}>
+             <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-colors ${step === 6 ? 'border-violet-600 bg-violet-50 text-violet-600 font-bold' : 'border-slate-300 text-slate-500'}`}>
+               6
+             </div>
+             <span className={`text-sm font-medium hidden sm:inline ${step === 6 ? 'text-violet-600' : 'text-slate-500 group-hover:text-violet-600'}`}>Workflow</span>
            </button>
         </div>
 
@@ -1169,6 +1804,8 @@ const App: React.FC = () => {
              {step === 2 && renderStep2()}
              {step === 3 && renderStep3()}
              {step === 4 && renderStep4()}
+             {step === 5 && renderStep5()}
+             {step === 6 && renderStep6()}
           </form>
         </div>
         

@@ -38,8 +38,17 @@ export const generateImplementationBrief = async (data: OnboardingData): Promise
 
     SEZIONE 4: EVENTI E MANUTENZIONE
     - Reattiva: ${data.reactiveTypes.join(', ')} (Scope: ${data.reactiveScope})
-    - Proattiva: Vincoli (${data.proactiveConstraints.join(', ')}). Moduli attivi: Costi (${data.enableCostReporting}), Materiali (${data.enableMaterialConsumption}), Manodopera (${data.enableLaborReporting}).
+    - Proattiva: Vincoli (${data.proactiveConstraints.join(', ')}). Moduli attivi: Costi (${data.enableCostReporting}), Materiali (${data.enableMaterialConsumption}).
     - Azioni Correttive: Automazione (${data.caEnableAutomation}), Workflow (${data.caWorkflow}).
+
+    SEZIONE 5: TEMPLATE & AUDIT
+    - Template: Tipologie (${data.templateTypes.join(', ')}). Includono: ${data.templateInclusions.join(', ')}.
+    - Importazione Template: ${data.importExistingModels}.
+    - Audit: Tipologie (${data.auditTypes.join(', ')}). Frequenza: ${data.auditFrequency.join(', ')}.
+
+    SEZIONE 6: WORKFLOW DESIGN
+    - Reattiva: Fasi (${data.wfReactivePhases.join(' -> ')}). Assegnazione: ${data.wfReactiveAssignmentType}.
+    - Proattiva: Fasi (${data.wfProactivePhases.join(' -> ')}). Pianificazione: ${data.wfProactivePlanners.join(', ')}.
 
     Genera un breve paragrafo professionale (massimo 250 parole) in Italiano intitolato "Brief di Implementazione".
     
@@ -47,8 +56,8 @@ export const generateImplementationBrief = async (data: OnboardingData): Promise
     1. Valutare la complessità del deploy.
     2. Evidenziare criticità tecniche (es. SSO, integrazioni API).
     3. Commentare la maturità della gestione asset.
-    4. Analizzare la strategia di richiesta (Wizard).
-    5. Descrivere sinteticamente l'approccio alla manutenzione (Eventi).
+    4. Analizzare la strategia di richiesta (Wizard) e Manutenzione.
+    5. Fornire un parere sulla strutturazione dei controlli qualità (Audit) e Workflow operativi.
   `;
 
   try {
